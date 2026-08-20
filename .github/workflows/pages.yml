@@ -1,0 +1,63 @@
+name: Pages
+
+# The documentation site is generated from docs/ by scripts/site.sh — POSIX sh
+# and awk, no Jekyll, no theme gem, no Node. edgemix has no dependencies and
+# neither does its tooling: a site that needs a toolchain to build is a site
+# that stops building on the day that toolchain moves, and these pages are
+# markdown with tables and fences in them.
+#
+# The gate is scripts/site.sh check, which fails on a dead internal link or a
+# dead anchor. That is the failure a docs rename actually causes, and it is
+# invisible until somebody clicks.
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/**"
+      - "scripts/site.sh"
+      - "scripts/site_test.sh"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time, and never cancel one in flight: a cancelled deploy can
+# leave the site on a half-published artifact.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The renderer's own tests
+        run: sh scripts/site_test.sh
+
+      - name: Every internal link and anchor resolves
+        run: ./scripts/site.sh check
+
+      - name: Render docs/ into _site
+        run: ./scripts/site.sh build _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

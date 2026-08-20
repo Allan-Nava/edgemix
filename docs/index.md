@@ -8,6 +8,7 @@ measurement.
 - [Usage and flags](usage.md)
 - [The dialects it reads](dialects.md)
 - [The findings, and the thresholds behind them](findings.md)
+- [A worked example, from 40 log lines to a profile](example.md)
 - [From a log to a load test](profile.md)
 
 ```

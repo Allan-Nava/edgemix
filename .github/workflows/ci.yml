@@ -80,6 +80,15 @@ jobs:
       - name: The issue planner
         run: sh scripts/backlog_issues_test.sh
 
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The markdown renderer behind the docs site
+        run: sh scripts/site_test.sh
+      - name: The site builds and every internal link resolves
+        run: ./scripts/site.sh check
+
   govulncheck:
     runs-on: ubuntu-latest
     steps:

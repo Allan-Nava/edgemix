@@ -51,6 +51,15 @@ disagree, this file wins and CLAUDE.md gets fixed.
 - **Align everything**: a new dialect, check or flag lands in the same commit as
   its README row, its `--help` text, its tests, the backlog tick and the
   CHANGELOG line.
+- **The docs are a site**: `docs/` is published to
+  [allan-nava.github.io/edgemix](https://allan-nava.github.io/edgemix/) by
+  `scripts/site.sh` — POSIX sh and awk, because tooling with a toolchain rots.
+  A new page goes into the `$pages` nav list in that script (an unlisted page
+  fails the build rather than becoming unreachable), links stay written as
+  `.md` and are rewritten to `.html` at render time, and
+  `scripts/site.sh check` — a CI gate alongside `scripts/site_test.sh` — fails
+  on a dead internal link or a dead anchor. Numbers on a docs page come from
+  running the tool over `docs/example.log`, never from memory.
 - **Releases**: every release is a tagged `vX.Y.Z` with a new `CHANGELOG.md`
   section (Keep a Changelog). `minor` for new dialects, checks or flags; `patch`
   for fixes. **Never `git push`** — that is the maintainer's call. No

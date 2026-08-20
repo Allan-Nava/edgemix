@@ -5,6 +5,42 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **A documentation site, published from `docs/`** (EM-23). The dialect table,
+  the finding catalogue with the threshold behind each one, the usage reference
+  and a worked example, rendered by `scripts/site.sh` — POSIX sh and awk, like
+  the rest of the tooling. A site that needs Ruby, Node or a theme gem to build
+  is a site that stops building on the day that toolchain moves; this one has
+  no toolchain, and the same markdown reads correctly on GitHub and on the
+  site because the renderer rewrites `.md` links to `.html` rather than asking
+  the pages to choose. `scripts/site.sh check` fails on a dead internal link or
+  a dead anchor, which is the failure a docs rename actually causes and the one
+  nobody notices until a reader clicks; it runs in CI on every push and before
+  every deploy.
+- **A worked example, end to end** (EM-23): `docs/example.md`, from a 40-line
+  hand-written HAProxy log that ships with it (`docs/example.log`) to the
+  emitted profile, with every figure on the page produced by running the two
+  commands over that file. Two of its lines carry a syslog prefix and change
+  none of the numbers, one request times out at 7301ms and one path is refused
+  entry to a pool because the only time it was asked for as a document it
+  answered `504`. An example whose input you cannot read is a screenshot.
+- `scripts/site_test.sh`: 31 checks over the renderer, because a renderer does
+  not crash — it publishes a page with `**bold**` printed literally in it, a
+  `.md` link that 404s, or a table row split in three by a `|` inside a cell.
+  It found an infinite loop on a paragraph beginning with a pipe before any
+  page did.
+
+### Changed
+
+- `BACKLOG.md` gains **M7 — Who was asking, and what it cost** (EM-28 … EM-34),
+  targeted at v0.4.0: bots separated from visitors, a per-host split, the
+  aggregate wait attributed per class and per path, concurrency at the peak
+  second, the write path in the mix, a single-file HTML report, and a versioned
+  JSON schema. `ROADMAP.md` regenerated.
+
 ## [0.1.0] — 2026-08-20
 
 First release: read a production access log, say what the traffic was made of,
@@ -76,4 +112,5 @@ and write the load-test profile from the same measurement.
 - The backlog tooling (`scripts/backlog.sh`), with `ROADMAP.md` generated from
   `BACKLOG.md` and both linted in CI.
 
+[Unreleased]: https://github.com/Allan-Nava/edgemix/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Allan-Nava/edgemix/releases/tag/v0.1.0

@@ -6,7 +6,7 @@
 > of truth for planned work. Regenerate it with `scripts/backlog.sh roadmap`
 > after editing the backlog — CI fails when the two disagree.
 
-**27 items · 14 shipped · 13 open · 6 milestones.**
+**34 items · 15 shipped · 19 open · 7 milestones.**
 
 ## At a glance
 
@@ -16,7 +16,8 @@
 | **M2** — Measure what the log can answer | `v0.1.0` | shipped | `##########` 100% | 0 | 7 |
 | **M3** — Feed the load test | `v0.1.0` | shipped | `##########` 100% | 0 | 2 |
 | **M4** — The layers this cannot see yet | `v0.2.0` | **now** | `..........` 0% | 6 | 0 |
-| **M5** — Delivery and depth | `v0.3.0` | later | `..........` 0% | 6 | 0 |
+| **M5** — Delivery and depth | `v0.3.0` | later | `##........` 17% | 5 | 1 |
+| **M7** — Who was asking, and what it cost | `v0.4.0` | later | `..........` 0% | 7 | 0 |
 | **M6** — Ongoing | `ongoing` | ongoing | `..........` 0% | 1 | 0 |
 
 ## Next up
@@ -83,16 +84,30 @@ Target `v0.2.0` · **now** · 6 open · 0 shipped · `..........` 0%
 
 ### M5 — Delivery and depth
 
-Target `v0.3.0` · later · 6 open · 0 shipped · `..........` 0%
+Target `v0.3.0` · later · 5 open · 1 shipped · `##........` 17%
 
 | Item | Priority | Size | Labels | Status |
 |---|---|---|---|---|
 | **EM-21** — Prometheus textfile output | med | S | output,integration | open |
 | **EM-22** — Docker image and a release pipeline | med | M | delivery,release | open |
-| **EM-23** — Documentation site | med | M | docs | open |
 | **EM-24** — Fuzz the parsers | med | M | tests,parser | open |
 | **EM-25** — Apache and AWS ALB dialects | low | M | parser | open |
 | **EM-26** — Infer a visitor journey | low | L | integration,check | open |
+| **EM-23** — Documentation site | med | M | docs | done, unreleased |
+
+### M7 — Who was asking, and what it cost
+
+Target `v0.4.0` · later · 7 open · 0 shipped · `..........` 0%
+
+| Item | Priority | Size | Labels | Status |
+|---|---|---|---|---|
+| **EM-28** — Bots kept apart from visitors | high | M | parser,check | open |
+| **EM-29** — Per-host split | high | M | check,cli | open |
+| **EM-30** — Where the wait actually went | high | M | check | open |
+| **EM-31** — Concurrency at the peak second | med | S | check | open |
+| **EM-32** — Methods, and the write path in the mix | med | M | check,integration | open |
+| **EM-33** — A single-file HTML report | med | M | output | open |
+| **EM-34** — A versioned JSON report | med | S | output,docs | open |
 
 ### M6 — Ongoing
 
@@ -106,12 +121,12 @@ Target `ongoing` · ongoing · 1 open · 0 shipped · `..........` 0%
 
 | Label | Items | Open |
 |---|---|---|
-| `check` | 11 | 5 |
-| `parser` | 8 | 4 |
-| `integration` | 5 | 3 |
-| `cli` | 4 | 2 |
-| `docs` | 2 | 2 |
-| `output` | 3 | 2 |
+| `check` | 16 | 10 |
+| `parser` | 9 | 5 |
+| `integration` | 6 | 4 |
+| `output` | 5 | 4 |
+| `cli` | 5 | 3 |
+| `docs` | 3 | 2 |
 | `delivery` | 1 | 1 |
 | `release` | 1 | 1 |
 | `tests` | 1 | 1 |

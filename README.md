@@ -6,9 +6,10 @@
   <img alt="Go" src="https://img.shields.io/github/go-mod/go-version/Allan-Nava/edgemix?color=10b981">
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-10b981">
   <a href="LICENSE"><img alt="License: PolyForm Noncommercial 1.0.0" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-f59e0b"></a>
+  <a href="https://allan-nava.github.io/edgemix/"><img alt="Documentation" src="https://img.shields.io/badge/docs-allan--nava.github.io%2Fedgemix-3b82f6"></a>
 </p>
 
-<p align="center">📖 <strong>Documentation: <a href="docs/index.md">docs/</a></strong> — <a href="docs/usage.md">usage</a> · <a href="docs/dialects.md">dialects</a> · <a href="docs/findings.md">findings</a> · <a href="docs/profile.md">log → load test</a></p>
+<p align="center">📖 <strong>Documentation: <a href="https://allan-nava.github.io/edgemix/">allan-nava.github.io/edgemix</a></strong> — <a href="docs/usage.md">usage</a> · <a href="docs/dialects.md">dialects</a> · <a href="docs/findings.md">findings</a> · <a href="docs/example.md">a worked example</a> · <a href="docs/profile.md">log → load test</a></p>
 
 ---
 
@@ -198,6 +199,8 @@ edgemix is the measurement the other three cannot make: it looks backwards, at t
 ## Contributing
 
 `BACKLOG.md` is the single source of truth for planned work (`ROADMAP.md` is generated from it — run `scripts/backlog.sh roadmap`). Tests come before implementation; `go test -race ./...` and `gofmt` are CI gates, as is having no dependencies at all.
+
+The documentation is the site: [`docs/`](docs/) is rendered to [allan-nava.github.io/edgemix](https://allan-nava.github.io/edgemix/) by `scripts/site.sh` — POSIX sh and awk, no Jekyll and nothing to install. A new page goes into the nav list at the top of that script, and `scripts/site.sh check` (a CI gate, with `scripts/site_test.sh`) fails on a dead internal link or a dead anchor rather than leaving it for a reader to find.
 
 ## License
 

@@ -9,3 +9,12 @@
 /*.profile.json
 /profile.json
 .DS_Store
+
+# The rendered documentation site. It is generated from docs/ by
+# scripts/site.sh on every deploy, so it is never committed.
+/_site/
+
+# The example log is written by hand for docs/example.md, not captured from
+# anywhere, and every number on that page is checked against it. It is
+# documentation, so it survives the *.log rule above.
+!/docs/example.log

@@ -125,9 +125,11 @@ prints what to pick up.
 - [ ] **EM-22 — Docker image and a release pipeline**: a static binary, a
   scratch image and signed archives per platform.
   <!-- em: prio=med size=M labels=delivery,release -->
-- [ ] **EM-23 — Documentation site**: the dialect table, the finding catalogue
-  and a worked example, published from `docs/`.
-  <!-- em: prio=med size=M labels=docs -->
+- [x] **EM-23 — Documentation site**: the dialect table, the finding catalogue
+  and a worked example, published from `docs/` by `scripts/site.sh` — POSIX sh
+  and awk, so the site has no toolchain to rot, and a dead internal link or a
+  dead anchor fails CI rather than waiting for a reader to click.
+  <!-- em: prio=med size=M labels=docs ver=unreleased -->
 - [ ] **EM-24 — Fuzz the parsers**: a log is bytes from the outside — a line cut
   by a rotation, a captured header with a quote in it, a JSON object with a
   number where a string belongs. A panic there is a crash in someone else's CI.
@@ -139,6 +141,45 @@ prints what to pick up.
   from measured traffic instead of a browser recording. Only possible where the
   log carries an identity, and must refuse where it does not.
   <!-- em: prio=low size=L labels=integration,check -->
+
+## M7 — Who was asking, and what it cost <!-- ms: target=v0.4.0 phase=later -->
+
+- [ ] **EM-28 — Bots kept apart from visitors**: nginx `combined` carries the
+  user agent and HAProxy can capture it, so a crawler sweep can be separated
+  from the traffic a load test should replay. A mix that counts Googlebot as
+  audience overstates both the shares and the peak, and a dialect carrying no
+  agent has to say it cannot separate them rather than reporting zero bots.
+  <!-- em: prio=high size=M labels=parser,check -->
+- [ ] **EM-29 — Per-host split**: one edge in front of several sites produces a
+  blended log, and shares over it describe a system nobody runs. HAProxy
+  captures `Host`, Traefik carries `RequestHost`, nginx needs it in the
+  `log_format` — with `--host` to narrow the window and a per-host section that
+  stays out of a report when the log names one host.
+  <!-- em: prio=high size=M labels=check,cli -->
+- [ ] **EM-30 — Where the wait actually went**: the aggregate wait attributed
+  per class and per path, not only the slowest ones. A 40ms endpoint asked 20k
+  times occupies the tier behind for longer than a 4s one asked twice, and a
+  p95 list never says so — which is how an optimisation lands on the page that
+  looked slow instead of the one that was expensive.
+  <!-- em: prio=high size=M labels=check -->
+- [ ] **EM-31 — Concurrency at the peak second**: arrival rate times mean wait,
+  stated as the estimate it is and with the assumption printed next to it. It
+  is the number that maps to a worker pool, a `maxconn` or a container count,
+  and the one people currently derive from req/s on a whiteboard.
+  <!-- em: prio=med size=S labels=check -->
+- [ ] **EM-32 — Methods, and the write path in the mix**: a mix replayed as
+  GETs measures the read path of a system whose POSTs are the expensive half.
+  Classes keep their method distribution and an emitted profile carries it —
+  and a body the log never recorded is a declared gap, never an invented
+  payload. <!-- em: prio=med size=M labels=check,integration -->
+- [ ] **EM-33 — A single-file HTML report**: `--format html`, with the
+  per-second series drawn as inline SVG — no script, no fetched asset, one file
+  to attach to an incident ticket. A peak is a shape, and the shape is the part
+  a table of percentiles cannot carry. <!-- em: prio=med size=M labels=output -->
+- [ ] **EM-34 — A versioned JSON report**: the JSON output becomes an interface
+  the moment a dashboard reads it, and a renamed key is then a silent break. A
+  `schema_version` and a documented shape make it a break that can be handled.
+  <!-- em: prio=med size=S labels=output,docs -->
 
 ## M6 — Ongoing <!-- ms: target=ongoing phase=ongoing -->
 
