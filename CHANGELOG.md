@@ -121,6 +121,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   second, the write path in the mix, a single-file HTML report, and a versioned
   JSON schema — plus EM-35 (the logo) and EM-36 (the documentation rule, as an
   ongoing item). `ROADMAP.md` regenerated.
+- `BACKLOG.md` gains **M8 — The window that matters** (EM-37 … EM-42), targeted
+  at v0.5.0: finding the incident window instead of being told it, the shape of
+  a day and a week, gaps and overlaps between files read as one window, a log
+  too big to hold, a baseline worth keeping, and a window that crosses a DST
+  change. The theme is one question — *which slice of this log am I looking at,
+  and is it the slice I think it is* — and every item in it is a way the answer
+  is currently assumed.
 
 ## [0.1.0] — 2026-08-20
 

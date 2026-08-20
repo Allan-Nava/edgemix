@@ -192,6 +192,46 @@ prints what to pick up.
   `schema_version` and a documented shape make it a break that can be handled.
   <!-- em: prio=med size=S labels=output,docs -->
 
+## M8 — The window that matters <!-- ms: target=v0.5.0 phase=later -->
+
+- [ ] **EM-37 — Find the window instead of being told it**: `--around` picks the
+  worst stretch of a long log by peak arrival, by wait tail or by 5xx share, and
+  says which of the three chose it and why. Today `--since/--until` require
+  already knowing the timestamps of the incident, which is the thing the log is
+  being read to find out — and a first pass over a day-long file to locate them
+  is a pass nobody does twice.
+  <!-- em: prio=high size=M labels=check,cli -->
+- [ ] **EM-38 — The shape of a day, and of a week**: arrivals and wait tails
+  bucketed by hour of day and day of week, so a load-test window is chosen from
+  evidence and "Tuesday morning is quiet" stops being folklore. It has to refuse
+  where the window is too short to carry the claim — a six-second log has no
+  daily shape, exactly as a six-second window has no burstiness ratio.
+  <!-- em: prio=high size=M labels=check,output -->
+- [ ] **EM-39 — Gaps and overlaps between the files given as one window**:
+  several files are read in the order given, and nothing today notices that the
+  last second of one is an hour before the first of the next (a rotation that
+  was never shipped), or that two files overlap, or that they were listed out of
+  order. Each one makes the silent-second finding, the mean and every share
+  wrong in a different direction, and all three are visible from the timestamps
+  alone. <!-- em: prio=high size=M labels=check,cli -->
+- [ ] **EM-40 — A log too big to hold**: a memory ceiling that is stated rather
+  than discovered at 3am, progress on stderr for a multi-gigabyte scan, and
+  `--sample 1/N` for a first look — with every absolute number scaled and the
+  assumption printed beside it. It has to compose with EM-19: a proxy logging
+  one request in ten, read one line in ten, is one in a hundred, and a tool that
+  multiplies those silently is worse than one that refuses.
+  <!-- em: prio=med size=L labels=cli,check -->
+- [ ] **EM-41 — A baseline worth keeping**: store the small record of a window —
+  peak, tails, mix, 5xx, cache — so drift is visible over weeks rather than only
+  between the two windows EM-16 compares. A baseline is also the only honest way
+  to answer "is this normal", which is the first question asked during every
+  incident. <!-- em: prio=med size=M labels=output,integration -->
+- [ ] **EM-42 — A window that crosses a DST change**: an HAProxy date carries no
+  zone, so `--tz Europe/Rome` over the night the clocks move either repeats an
+  hour or skips one. The per-second series then has two 02:30:00s, and the peak
+  second is the sum of two. The log cannot resolve it; the report has to say
+  which hour it doubled or lost. <!-- em: prio=med size=S labels=check -->
+
 ## M6 — Ongoing <!-- ms: target=ongoing phase=ongoing -->
 
 - [ ] **EM-27 — Keep the finding catalogue and its thresholds documented**:

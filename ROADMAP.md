@@ -6,7 +6,7 @@
 > of truth for planned work. Regenerate it with `scripts/backlog.sh roadmap`
 > after editing the backlog — CI fails when the two disagree.
 
-**36 items · 17 shipped · 19 open · 7 milestones.**
+**42 items · 17 shipped · 25 open · 8 milestones.**
 
 ## At a glance
 
@@ -18,6 +18,7 @@
 | **M4** — The layers this cannot see yet | `v0.2.0` | **now** | `##........` 17% | 5 | 1 |
 | **M5** — Delivery and depth | `v0.3.0` | later | `###.......` 29% | 5 | 2 |
 | **M7** — Who was asking, and what it cost | `v0.4.0` | later | `..........` 0% | 7 | 0 |
+| **M8** — The window that matters | `v0.5.0` | later | `..........` 0% | 6 | 0 |
 | **M6** — Ongoing | `ongoing` | ongoing | `..........` 0% | 2 | 0 |
 
 ## Next up
@@ -110,6 +111,19 @@ Target `v0.4.0` · later · 7 open · 0 shipped · `..........` 0%
 | **EM-33** — A single-file HTML report | med | M | output | open |
 | **EM-34** — A versioned JSON report | med | S | output,docs | open |
 
+### M8 — The window that matters
+
+Target `v0.5.0` · later · 6 open · 0 shipped · `..........` 0%
+
+| Item | Priority | Size | Labels | Status |
+|---|---|---|---|---|
+| **EM-37** — Find the window instead of being told it | high | M | check,cli | open |
+| **EM-38** — The shape of a day, and of a week | high | M | check,output | open |
+| **EM-39** — Gaps and overlaps between the files given as one window | high | M | check,cli | open |
+| **EM-40** — A log too big to hold | med | L | cli,check | open |
+| **EM-41** — A baseline worth keeping | med | M | output,integration | open |
+| **EM-42** — A window that crosses a DST change | med | S | check | open |
+
 ### M6 — Ongoing
 
 Target `ongoing` · ongoing · 2 open · 0 shipped · `..........` 0%
@@ -123,11 +137,11 @@ Target `ongoing` · ongoing · 2 open · 0 shipped · `..........` 0%
 
 | Label | Items | Open |
 |---|---|---|
-| `check` | 16 | 10 |
-| `integration` | 6 | 4 |
-| `output` | 5 | 4 |
+| `check` | 21 | 15 |
+| `cli` | 8 | 6 |
+| `output` | 7 | 6 |
+| `integration` | 7 | 5 |
 | `parser` | 9 | 4 |
-| `cli` | 5 | 3 |
 | `docs` | 5 | 3 |
 | `delivery` | 2 | 1 |
 | `project` | 1 | 1 |
