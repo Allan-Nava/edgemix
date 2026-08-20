@@ -2,7 +2,7 @@
 # all, so the image needs neither CA certificates nor a resolver. There is no
 # shell in it either — a container that can only run one program is one less
 # thing to reason about when it is pointed at production logs.
-FROM golang:1.25-alpine AS build
+FROM golang:1.27-alpine AS build
 ARG VERSION=dev
 WORKDIR /src
 COPY . .
