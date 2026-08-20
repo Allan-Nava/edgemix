@@ -1,0 +1,11 @@
+/edgemix
+/dist/
+*.log
+*.log.gz
+/cover.out
+/coverage.html
+# A profile is a map of somebody's infrastructure — hostnames, real routes,
+# build hashes. Emitted profiles stay out of this repository.
+/*.profile.json
+/profile.json
+.DS_Store

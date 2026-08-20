@@ -1,0 +1,7 @@
+.git
+.github
+dist
+docs
+*.log
+*.log.gz
+profile.json
