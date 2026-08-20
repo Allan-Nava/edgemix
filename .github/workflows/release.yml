@@ -1,0 +1,223 @@
+name: Release
+
+# Everything a release produces, produced by the same run that produced the
+# binary: the six archives, their checksums, a sigstore provenance attestation
+# over each one, the Homebrew formula generated from those checksums, and the
+# multi-arch image on ghcr.io.
+#
+# The formula is generated rather than kept in the repository for the same
+# reason ROADMAP.md is: its sha256 lines are facts about files that do not
+# exist yet when the formula is written by hand, and a formula carrying a
+# checksum somebody typed is a formula that fails on the day the archive is
+# rebuilt.
+#
+# Nothing here publishes anything unless the ref is a tag. A workflow_dispatch
+# run builds and checks the whole set and stops before the release, which is how
+# the pipeline gets rehearsed without spending a version number.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archives:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+          - { goos: windows, goarch: arm64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -eu
+          # The version the binary reports carries no leading v, so that
+          # `edgemix version` and the Homebrew formula's `version` agree — the
+          # formula's own test asserts exactly that.
+          version=${GITHUB_REF_NAME#v}
+          bin=edgemix
+          [ "$GOOS" = windows ] && bin=edgemix.exe
+          mkdir -p dist/pkg
+          go build -trimpath -ldflags "-s -w -X main.version=$version" -o "dist/pkg/$bin" ./cmd/edgemix
+          cp LICENSE README.md CHANGELOG.md dist/pkg/
+
+          name="edgemix_${version}_${GOOS}_${GOARCH}"
+          cd dist/pkg
+          if [ "$GOOS" = windows ]; then
+            zip -q -r "../$name.zip" .
+            archive="$name.zip"
+          else
+            tar -czf "../$name.tar.gz" .
+            archive="$name.tar.gz"
+          fi
+          cd ..
+          sha256sum "$archive" >"$archive.sha256"
+          cat "$archive.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edgemix-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+  release:
+    needs: archives
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create the release
+      id-token: write # to sign the provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: staging
+          merge-multiple: true
+
+      - name: Collect the archives and one SHA256SUMS
+        run: |
+          set -eu
+          mkdir -p dist
+          mv staging/*.tar.gz staging/*.zip dist/
+          cat staging/*.sha256 | sort -k2 >dist/SHA256SUMS
+          cat dist/SHA256SUMS
+
+      # A checksum file says the archives are internally consistent. The
+      # attestation says who built them and from which commit, which is the part
+      # a checksum cannot carry — and it needs no key to manage, so there is no
+      # excuse for skipping it.
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: "dist/edgemix_*"
+
+      - name: Generate the Homebrew formula from those checksums
+        run: |
+          set -eu
+          version=${GITHUB_REF_NAME#v}
+          ./scripts/brew.sh formula "$version" dist/SHA256SUMS >dist/edgemix.rb
+          cat dist/edgemix.rb
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          set -eu
+          version=${GITHUB_REF_NAME#v}
+          # The section for this version, or nothing: a release whose notes were
+          # invented reads as a release nobody wrote notes for.
+          awk -v v="$version" '
+            /^## \[/ { if (p) exit; if (index($0, "[" v "]")) { p = 1; next } }
+            p
+          ' CHANGELOG.md >dist/notes.md
+          if [ ! -s dist/notes.md ]; then
+            echo "::warning::CHANGELOG.md has no [$version] section — releasing with a pointer to it instead"
+            printf 'See [CHANGELOG.md](https://github.com/%s/blob/main/CHANGELOG.md).\n' "$GITHUB_REPOSITORY" >dist/notes.md
+          fi
+          # Tilde fences and no inline backticks: a backtick inside a shell
+          # string is a command substitution waiting to happen, and this text is
+          # assembled by a shell.
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "### Install"
+            echo ""
+            echo "~~~bash"
+            echo "brew install https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/edgemix.rb"
+            echo "docker run --rm -v /var/log:/logs:ro ghcr.io/${GITHUB_REPOSITORY,,}:$GITHUB_REF_NAME analyze /logs/edge.log"
+            echo "~~~"
+            echo ""
+            echo "Every archive carries a sha256 in SHA256SUMS and a sigstore provenance attestation:"
+            echo ""
+            echo "~~~bash"
+            echo "gh attestation verify edgemix_${version}_darwin_arm64.tar.gz --repo $GITHUB_REPOSITORY"
+            echo "~~~"
+            echo ""
+            echo "Full instructions: https://allan-nava.github.io/edgemix/install.html"
+          } >>dist/notes.md
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "edgemix ${GITHUB_REF_NAME#v}" \
+            --notes-file dist/notes.md \
+            --verify-tag \
+            dist/edgemix_* dist/SHA256SUMS dist/edgemix.rb
+
+  # A package pushed by GITHUB_TOKEN starts out private, whatever the repository
+  # is. The first release therefore publishes an image nobody else can pull until
+  # its visibility is flipped once, by hand, in the package settings on GitHub —
+  # after which every later tag inherits it. There is no API-free way to do that
+  # from here, so it is written down rather than discovered.
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      # The login has to come before the build, or the push at the end of it has
+      # nowhere to go. On a dispatch rehearsal there is no push and no login.
+      - uses: docker/login-action@v3
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The same version string the archives stamp, so `edgemix version` says the
+      # same thing whichever way it was installed.
+      - name: The version this build reports
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >>"$GITHUB_OUTPUT"
+
+      - name: Build (and push on a tag)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ steps.v.outputs.version }}
+          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          # ghcr wants a lower-case path; the account name is not.
+          tags: |
+            ghcr.io/allan-nava/edgemix:${{ github.ref_name }}
+            ghcr.io/allan-nava/edgemix:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Read a production access log: what the traffic was made of, when it peaked, and where it waited
+            org.opencontainers.image.licenses=PolyForm-Noncommercial-1.0.0
+
+      - uses: actions/attest-build-provenance@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          subject-name: ghcr.io/allan-nava/edgemix
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

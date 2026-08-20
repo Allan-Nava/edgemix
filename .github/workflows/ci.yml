@@ -95,6 +95,26 @@ jobs:
         run: sh scripts/logo_test.sh
       - name: The committed SVGs match the geometry
         run: ./scripts/logo.sh check
+      # The Homebrew formula is generated at release time from the checksums of
+      # the archives. Its generator is tested here, because the release run is
+      # not the place to discover that a checksum lookup silently returned
+      # nothing.
+      - name: The Homebrew formula generator
+        run: sh scripts/brew_test.sh
+
+  # Three workflows now — CI, Pages and Release — and nothing else reads them.
+  # actionlint catches a bad expression, a wrong action input and (via
+  # shellcheck) a mistake in a `run` block, which are otherwise found by tagging
+  # a release and watching it fail.
+  actions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+      - run: actionlint .github/workflows/*.yml
 
   govulncheck:
     runs-on: ubuntu-latest

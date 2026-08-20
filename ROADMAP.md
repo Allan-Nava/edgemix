@@ -6,7 +6,7 @@
 > of truth for planned work. Regenerate it with `scripts/backlog.sh roadmap`
 > after editing the backlog — CI fails when the two disagree.
 
-**42 items · 17 shipped · 25 open · 8 milestones.**
+**43 items · 18 shipped · 25 open · 8 milestones.**
 
 ## At a glance
 
@@ -16,7 +16,7 @@
 | **M2** — Measure what the log can answer | `v0.1.0` | shipped | `##########` 100% | 0 | 7 |
 | **M3** — Feed the load test | `v0.1.0` | shipped | `##########` 100% | 0 | 2 |
 | **M4** — The layers this cannot see yet | `v0.2.0` | **now** | `##........` 17% | 5 | 1 |
-| **M5** — Delivery and depth | `v0.3.0` | later | `###.......` 29% | 5 | 2 |
+| **M5** — Delivery and depth | `v0.3.0` | later | `####......` 38% | 5 | 3 |
 | **M7** — Who was asking, and what it cost | `v0.4.0` | later | `..........` 0% | 7 | 0 |
 | **M8** — The window that matters | `v0.5.0` | later | `..........` 0% | 6 | 0 |
 | **M6** — Ongoing | `ongoing` | ongoing | `..........` 0% | 2 | 0 |
@@ -85,15 +85,16 @@ Target `v0.2.0` · **now** · 5 open · 1 shipped · `##........` 17%
 
 ### M5 — Delivery and depth
 
-Target `v0.3.0` · later · 5 open · 2 shipped · `###.......` 29%
+Target `v0.3.0` · later · 5 open · 3 shipped · `####......` 38%
 
 | Item | Priority | Size | Labels | Status |
 |---|---|---|---|---|
 | **EM-21** — Prometheus textfile output | med | S | output,integration | open |
-| **EM-22** — Docker image and a release pipeline | med | M | delivery,release | open |
 | **EM-24** — Fuzz the parsers | med | M | tests,parser | open |
+| **EM-43** — A Homebrew tap | med | S | delivery | open |
 | **EM-25** — Apache and AWS ALB dialects | low | M | parser | open |
 | **EM-26** — Infer a visitor journey | low | L | integration,check | open |
+| **EM-22** — Docker image and a release pipeline | med | M | delivery,release | done, unreleased |
 | **EM-23** — Documentation site | med | M | docs | done, unreleased |
 | **EM-35** — A logo, and one geometry behind it | med | S | docs,delivery | done, unreleased |
 
@@ -143,7 +144,7 @@ Target `ongoing` · ongoing · 2 open · 0 shipped · `..........` 0%
 | `integration` | 7 | 5 |
 | `parser` | 9 | 4 |
 | `docs` | 5 | 3 |
-| `delivery` | 2 | 1 |
+| `delivery` | 3 | 1 |
 | `project` | 1 | 1 |
-| `release` | 1 | 1 |
 | `tests` | 1 | 1 |
+| `release` | 1 | 0 |

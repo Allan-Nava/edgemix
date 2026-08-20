@@ -9,6 +9,39 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **A release pipeline, an image on ghcr.io and a Homebrew formula** (EM-22).
+  On a `v*` tag: six archives (Linux, macOS and Windows on `amd64` and
+  `arm64`), one `SHA256SUMS`, a **sigstore provenance attestation** over each
+  archive and over the image — no key for anybody to lose, and
+  `gh attestation verify` says which commit and which workflow built the file —
+  the multi-arch image pushed to `ghcr.io/allan-nava/edgemix`, and release notes
+  taken from the CHANGELOG section for that version rather than invented. A
+  `workflow_dispatch` run builds and checks the whole set and stops before
+  publishing, so the pipeline gets rehearsed without spending a version number.
+  The image already existed and was already smoke-tested in CI; what was
+  missing was everything that puts it in someone's hands.
+- **`brew install` without a tap** (EM-22): `scripts/brew.sh` generates the
+  formula from the `SHA256SUMS` the release run just produced, and the run
+  attaches `edgemix.rb` to the release — so
+  `brew install <release-url>/edgemix.rb` works with nothing else set up. The
+  formula is generated rather than committed for the same reason `ROADMAP.md` is:
+  every `sha256` line in it is a fact about a file that does not exist yet when
+  a person would be writing it, and a typed checksum fails as a download that
+  aborts, which reads like a network problem. Its own `brew test` asserts that
+  the binary reports the version the formula claims *and* that it reads a
+  two-line log and says the peak was 2 req/s — both verified here against the
+  real binary by `scripts/brew_test.sh` (19 checks), because a formula that
+  only checks the binary starts is a formula that passes on an empty file.
+  `brew upgrade` will not find the next release from a URL install: that needs a
+  tap, which is EM-43.
+- **[docs/install.md](https://allan-nava.github.io/edgemix/install.html)**: the
+  four ways in, each with what it does *not* give you — `go install` reports its
+  version as `dev` so a report from it cannot be attributed to a release, the
+  scratch image has no shell so `docker exec` does not work, a URL-installed
+  formula does not upgrade, and `homebrew-core` cannot take a PolyForm
+  Noncommercial licence at all. Every command on the page was run: the image
+  builds at 2.4 MB, runs as `65534`, and reads `docs/example.log` through a
+  read-only mount to the same report the worked example prints.
 - **Two CDN dialects: CloudFront and Akamai DataStream 2** (EM-15). Everything
   above the edge used to be invisible, which is exactly where the difference
   between origin load and audience lives.

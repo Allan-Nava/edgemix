@@ -126,9 +126,20 @@ prints what to pick up.
 - [ ] **EM-21 — Prometheus textfile output**: the peak, the tails and the 5xx
   share as metrics, for a cron that keeps a rolling baseline.
   <!-- em: prio=med size=S labels=output,integration -->
-- [ ] **EM-22 — Docker image and a release pipeline**: a static binary, a
-  scratch image and signed archives per platform.
-  <!-- em: prio=med size=M labels=delivery,release -->
+- [x] **EM-22 — Docker image and a release pipeline**: on a `v*` tag, six
+  archives with `SHA256SUMS`, a sigstore provenance attestation over each one
+  (no key for anybody to lose), the multi-arch image on `ghcr.io`, release notes
+  taken from the CHANGELOG section for that version, and the Homebrew formula
+  generated from the checksums the same run produced. A `workflow_dispatch`
+  builds and checks the whole set without publishing, so the pipeline is
+  rehearsed rather than debugged on a version number.
+  <!-- em: prio=med size=M labels=delivery,release ver=unreleased -->
+- [ ] **EM-43 — A Homebrew tap**: `brew install <url>` pins the formula it was
+  given, so `brew upgrade` never finds the next release — which is the one thing
+  people expect from brew. A `homebrew-edgemix` repository with the generated
+  formula committed to it by the release run fixes that; `homebrew-core` cannot,
+  because it takes open-source licences only and this one is PolyForm
+  Noncommercial. <!-- em: prio=med size=S labels=delivery -->
 - [x] **EM-23 — Documentation site**: the dialect table, the finding catalogue
   and a worked example, published from `docs/` by `scripts/site.sh` — POSIX sh
   and awk, so the site has no toolchain to rot, and a dead internal link or a

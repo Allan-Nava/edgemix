@@ -5,6 +5,7 @@ of, when it peaked at the second, and where it waited — then writes a
 [crowdsim](https://github.com/HiWay-Media/crowdsim) profile from the same
 measurement.
 
+- [Installing it](install.md)
 - [Usage and flags](usage.md)
 - [The dialects it reads](dialects.md)
 - [The findings, and the thresholds behind them](findings.md)

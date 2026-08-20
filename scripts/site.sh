@@ -41,6 +41,7 @@ docsdir="${DOCS_DIR:-$root/docs}"
 # The nav, in reading order: `<slug>|<label>`. A page in docs/ that is missing
 # from this list is an error rather than a page nobody can reach.
 pages='index|Overview
+install|Install
 usage|Usage
 dialects|Dialects
 findings|Findings
