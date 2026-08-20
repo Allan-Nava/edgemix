@@ -10,6 +10,7 @@ measurement.
 - [The findings, and the thresholds behind them](findings.md)
 - [A worked example, from 40 log lines to a profile](example.md)
 - [From a log to a load test](profile.md)
+- [The logo, and what it means](logo.md)
 
 ```
   visitors

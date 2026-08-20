@@ -193,6 +193,14 @@ assert_render "a link to a non-markdown file keeps its extension" \
 	'see [the log](example.log)' \
 	'<a href="example.log">'
 
+assert_render "an image renders as an image, not a link with a bang" \
+	'![The edgemix lockup](assets/edgemix-logo-light.svg)' \
+	'<img src="assets/edgemix-logo-light.svg" alt="The edgemix lockup">'
+
+assert_render_absent "an image leaves no stray exclamation mark behind" \
+	'![The edgemix lockup](assets/edgemix-logo-light.svg)' \
+	'!<a'
+
 assert_render "a link inside a code span is text" \
 	'write `[text](target.md)` to link' \
 	'<code>[text](target.md)</code>'
@@ -256,6 +264,54 @@ else
 	fi
 fi
 
+# The logo travels with the pages. It is referenced by relative path from
+# every page of the site, so a build that renders the markdown and leaves
+# docs/assets behind publishes a header with a broken image in it.
+checks=$((checks + 1))
+"$script" build "$tmp/site" >/dev/null
+missing=""
+for a in favicon.svg edgemix-mark.svg edgemix-logo-light.svg edgemix-logo-dark.svg; do
+	[ -f "$tmp/site/assets/$a" ] || missing="$missing $a"
+done
+if [ -z "$missing" ]; then
+	echo "ok   docs/assets is copied into the built site"
+else
+	fail "the built site is missing assets:$missing"
+fi
+
+assert_contains_file() {
+	checks=$((checks + 1))
+	if grep -qF "$2" "$3"; then
+		echo "ok   $1"
+	else
+		fail "$1 — expected to find: $2"
+	fi
+}
+
+assert_contains_file "every page points its tab icon at the favicon" \
+	'href="assets/favicon.svg"' "$tmp/site/index.html"
+assert_contains_file "the header carries the mark" \
+	'src="assets/edgemix-mark.svg"' "$tmp/site/index.html"
+
+# A missing image has to fail the build the same way a missing page does.
+checks=$((checks + 1))
+rm -rf "$tmp/nosrc"
+mkdir -p "$tmp/nosrc"
+cp "$root"/docs/*.md "$tmp/nosrc/"
+printf '\n![a mark that is not there](assets/nope.svg)\n' >>"$tmp/nosrc/index.md"
+mkdir -p "$tmp/nosrc/assets"
+cp "$root"/docs/assets/*.svg "$tmp/nosrc/assets/"
+if DOCS_DIR="$tmp/nosrc" "$script" check >"$tmp/nosrc.out" 2>&1; then
+	fail "check passed over a page whose image does not exist"
+else
+	if grep -q 'nope.svg' "$tmp/nosrc.out"; then
+		echo "ok   a missing image fails the check, named"
+	else
+		fail "the missing image was not named"
+		sed 's/^/       /' "$tmp/nosrc.out" >&2
+	fi
+fi
+
 # The real site builds, and every internal link and anchor in it resolves.
 checks=$((checks + 1))
 if "$script" check >"$tmp/check.out" 2>&1; then
@@ -271,8 +327,12 @@ checks=$((checks + 1))
 mkdir -p "$tmp/docs"
 cp "$root/docs/index.md" "$tmp/docs/index.md"
 printf '\nsee [nowhere](nowhere.md) and [no anchor](index.md#not-a-heading)\n' >>"$tmp/docs/index.md"
-for slug in usage dialects findings example profile; do
-	printf '# %s\n' "$slug" >"$tmp/docs/$slug.md"
+# The stub pages come from the nav itself: a list hardcoded here goes stale
+# the day a page is added, and the failure looks like a bug in the checker.
+"$script" pages | while IFS='|' read -r slug label; do
+	[ -n "$slug" ] || continue
+	[ "$slug" = index ] && continue
+	printf '# %s\n' "$label" >"$tmp/docs/$slug.md"
 done
 if DOCS_DIR="$tmp/docs" "$script" check >"$tmp/dead.out" 2>&1; then
 	fail "check passed over a site with a dead link and a dead anchor"

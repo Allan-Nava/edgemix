@@ -1,4 +1,9 @@
-<h1 align="center">edgemix</h1>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/edgemix-logo-dark.svg">
+    <img alt="edgemix" src="docs/assets/edgemix-logo-light.svg" width="290">
+  </picture>
+</p>
 
 <p align="center"><strong>Your edge log already knows what your traffic is made of. <em>edgemix</em> reads it out — and writes the load test.</strong></p>
 
@@ -9,7 +14,7 @@
   <a href="https://allan-nava.github.io/edgemix/"><img alt="Documentation" src="https://img.shields.io/badge/docs-allan--nava.github.io%2Fedgemix-3b82f6"></a>
 </p>
 
-<p align="center">📖 <strong>Documentation: <a href="https://allan-nava.github.io/edgemix/">allan-nava.github.io/edgemix</a></strong> — <a href="docs/usage.md">usage</a> · <a href="docs/dialects.md">dialects</a> · <a href="docs/findings.md">findings</a> · <a href="docs/example.md">a worked example</a> · <a href="docs/profile.md">log → load test</a></p>
+<p align="center">📖 <strong>Documentation: <a href="https://allan-nava.github.io/edgemix/">allan-nava.github.io/edgemix</a></strong> — <a href="docs/usage.md">usage</a> · <a href="docs/dialects.md">dialects</a> · <a href="docs/findings.md">findings</a> · <a href="docs/example.md">a worked example</a> · <a href="docs/profile.md">log → load test</a> · <a href="docs/logo.md">the logo</a></p>
 
 ---
 
@@ -199,6 +204,8 @@ edgemix is the measurement the other three cannot make: it looks backwards, at t
 ## Contributing
 
 `BACKLOG.md` is the single source of truth for planned work (`ROADMAP.md` is generated from it — run `scripts/backlog.sh roadmap`). Tests come before implementation; `go test -race ./...` and `gofmt` are CI gates, as is having no dependencies at all.
+
+The [logo](docs/logo.md) is generated too: `scripts/logo.sh` writes the four SVGs from one geometry, and the dashed line in the mark is the arithmetic mean of its bars rather than a line somebody placed — a mark that lied about its own numbers would be a poor sign for a measurement tool. `scripts/logo.sh check` is a CI gate.
 
 The documentation is the site: [`docs/`](docs/) is rendered to [allan-nava.github.io/edgemix](https://allan-nava.github.io/edgemix/) by `scripts/site.sh` — POSIX sh and awk, no Jekyll and nothing to install. A new page goes into the nav list at the top of that script, and `scripts/site.sh check` (a CI gate, with `scripts/site_test.sh`) fails on a dead internal link or a dead anchor rather than leaving it for a reader to find.
 

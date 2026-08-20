@@ -17,6 +17,8 @@ on:
       - "docs/**"
       - "scripts/site.sh"
       - "scripts/site_test.sh"
+      - "scripts/logo.sh"
+      - "scripts/logo_test.sh"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -37,6 +39,11 @@ jobs:
 
       - name: The renderer's own tests
         run: sh scripts/site_test.sh
+
+      - name: The logo generator, and the committed SVGs
+        run: |
+          sh scripts/logo_test.sh
+          ./scripts/logo.sh check
 
       - name: Every internal link and anchor resolves
         run: ./scripts/site.sh check

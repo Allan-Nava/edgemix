@@ -24,8 +24,10 @@
 #   `.html` so the same file reads correctly on GitHub and on the site.
 #
 # Not supported, on purpose: `_emphasis_` (a `$upstream_cache_status` in prose
-# would become italics), images, footnotes, HTML blocks, nested ordered lists,
-# and cell alignment. `check` fails on a broken internal link, which is the
+# would become italics), footnotes, HTML blocks, nested ordered lists, cell
+# alignment, and a custom heading id (`## Title {#slug}`) — GitHub renders that
+# one as literal text, and a page has to read the same in both places, so the
+# anchor is always the slug of the heading. `check` fails on a broken internal link, which is the
 # failure this script is most likely to cause.
 #
 # DOCS_DIR overrides the source directory so the tests can render a fixture
@@ -43,7 +45,8 @@ usage|Usage
 dialects|Dialects
 findings|Findings
 example|Worked example
-profile|Log to load test'
+profile|Log to load test
+logo|Logo'
 
 repo_url="https://github.com/Allan-Nava/edgemix"
 site_name="edgemix"
@@ -132,8 +135,16 @@ render_md() {
 			rest = substr(s, p + 2)
 			q = index(rest, ")")
 			if (!k || !q) { out = out substr(s, 1, p + 1); s = substr(s, p + 2); continue }
-			out = out substr(s, 1, k - 1) \
-				"<a href=\"" href(substr(rest, 1, q - 1)) "\">" substr(s, k + 1, p - k - 1) "</a>"
+			# An image is the same shape with a bang in front of it. Without
+			# this branch `![alt](mark.svg)` renders as a link with a stray
+			# exclamation mark before it — which is what the logo page did the
+			# first time it carried its own lockup.
+			if (k > 1 && substr(s, k - 1, 1) == "!")
+				out = out substr(s, 1, k - 2) \
+					"<img src=\"" href(substr(rest, 1, q - 1)) "\" alt=\"" substr(s, k + 1, p - k - 1) "\">"
+			else
+				out = out substr(s, 1, k - 1) \
+					"<a href=\"" href(substr(rest, 1, q - 1)) "\">" substr(s, k + 1, p - k - 1) "</a>"
 			s = substr(rest, q + 1)
 		}
 		s = out s
@@ -390,6 +401,10 @@ header.site {
 header.site .wrap { padding-top: 1.5rem; padding-bottom: 0; }
 .brand { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
 .brand a { color: var(--fg); text-decoration: none; font-weight: 700; font-size: 1.35rem; font-family: var(--mono); }
+.brand-link { display: inline-flex; align-items: center; gap: .5rem; }
+/* The mark carries its own colours — they are chosen to read on either
+   background, so it is never recoloured or inverted per theme. */
+.brand-mark { display: block; width: 2.125rem; height: 2.125rem; }
 .brand .tagline { color: var(--fg-soft); font-size: .9rem; }
 nav.site { display: flex; gap: .25rem; flex-wrap: wrap; margin: 1rem -.6rem -1px; }
 nav.site a {
@@ -440,6 +455,26 @@ blockquote {
   color: var(--fg-soft);
 }
 .scroll { overflow-x: auto; margin: 1rem 0; }
+img { max-width: 100%; height: auto; }
+/* An image on its own line is a figure: it gets a plate, so a transparent SVG
+   is not floating on the page background. */
+p > img:only-child {
+  display: block;
+  margin: 1.5rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+/* A lockup carries a wordmark, and a wordmark has one ink colour: the light
+   file is dark text and would vanish on a dark page. Each variant is shown on
+   the background it was drawn for, in either theme, rather than on the
+   reader's. This is why the mark itself has no variants — it needs none. */
+img[src$="-light.svg"] { background: #ffffff; }
+img[src$="-dark.svg"]  { background: #0d1117; }
+/* The mark is a 64px file. Shown at its intrinsic size inside a plate it reads
+   as a stray icon rather than as the subject of the page. */
+p > img:only-child[src$="edgemix-mark.svg"] { width: 112px; height: 112px; }
 table { border-collapse: collapse; width: 100%; font-size: .92rem; }
 th, td { border: 1px solid var(--line); padding: .45rem .7rem; text-align: left; vertical-align: top; }
 thead th { background: var(--bg-soft); }
@@ -475,11 +510,11 @@ page_html() {
 <meta property="og:description" content="$site_tagline">
 <meta property="og:type" content="article">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 </head>
 <body>
 <header class="site"><div class="wrap">
-<div class="brand"><a href="index.html">$site_name</a> <span class="tagline">$site_tagline</span></div>
+<div class="brand"><a class="brand-link" href="index.html"><img class="brand-mark" src="assets/edgemix-mark.svg" alt="" width="34" height="34"><span>$site_name</span></a> <span class="tagline">$site_tagline</span></div>
 <nav class="site">$(nav_html "$slug")</nav>
 </div></header>
 <main><div class="wrap">
@@ -523,6 +558,13 @@ build() {
 	lint_pages
 	mkdir -p "$out"
 	stylesheet >"$out/style.css"
+	# The logo files and anything else docs/assets carries. The site references
+	# them by relative path, so they have to travel with the pages: a mark that
+	# 404s is the first thing a visitor sees.
+	if [ -d "$docsdir/assets" ]; then
+		mkdir -p "$out/assets"
+		cp "$docsdir/assets"/* "$out/assets/"
+	fi
 	# The site is deployed as an artifact, so Jekyll never runs over it. The
 	# marker is here for the day somebody points the branch-based Pages build
 	# at this directory, where a file named _something would be dropped.
@@ -549,7 +591,11 @@ check_links() {
 	: >"$tmp/dead.txt"
 	for f in "$out"/*.html; do
 		page=$(basename "$f")
-		grep -o 'href="[^"]*"' "$f" | sed 's/^href="//; s/"$//' | sort -u |
+		# src as well as href: the logo, the favicon and any future image are
+		# referenced by src, and a missing one is a broken page rather than a
+		# broken link — which is worse, and invisible to a link checker that
+		# only reads anchors.
+		grep -oE '(href|src)="[^"]*"' "$f" | sed 's/^[a-z]*="//; s/"$//' | sort -u |
 			while read -r url; do
 				case "$url" in
 				http://* | https://* | mailto:* | data:* | //*) continue ;;

@@ -6,7 +6,7 @@
 > of truth for planned work. Regenerate it with `scripts/backlog.sh roadmap`
 > after editing the backlog — CI fails when the two disagree.
 
-**34 items · 15 shipped · 19 open · 7 milestones.**
+**36 items · 16 shipped · 20 open · 7 milestones.**
 
 ## At a glance
 
@@ -16,9 +16,9 @@
 | **M2** — Measure what the log can answer | `v0.1.0` | shipped | `##########` 100% | 0 | 7 |
 | **M3** — Feed the load test | `v0.1.0` | shipped | `##########` 100% | 0 | 2 |
 | **M4** — The layers this cannot see yet | `v0.2.0` | **now** | `..........` 0% | 6 | 0 |
-| **M5** — Delivery and depth | `v0.3.0` | later | `##........` 17% | 5 | 1 |
+| **M5** — Delivery and depth | `v0.3.0` | later | `###.......` 29% | 5 | 2 |
 | **M7** — Who was asking, and what it cost | `v0.4.0` | later | `..........` 0% | 7 | 0 |
-| **M6** — Ongoing | `ongoing` | ongoing | `..........` 0% | 1 | 0 |
+| **M6** — Ongoing | `ongoing` | ongoing | `..........` 0% | 2 | 0 |
 
 ## Next up
 
@@ -26,6 +26,7 @@ The open items with the highest priority in the milestones that are in flight.
 
 - **EM-15** — CDN log dialects · `high` · size `L` · parser (M4, target `v0.2.0`)
 - **EM-16** — `edgemix compare` for two windows · `high` · size `M` · check,cli (M4, target `v0.2.0`)
+- **EM-36** — Document everything, in the same commit · `high` · size `M` · docs,project (M6, target `ongoing`)
 - **EM-17** — Per-second series export · `med` · size `S` · output (M4, target `v0.2.0`)
 - **EM-18** — Cache-Status (RFC 9211) and captured cache headers · `med` · size `M` · parser,check (M4, target `v0.2.0`)
 - **EM-19** — Declared sampling · `med` · size `M` · check (M4, target `v0.2.0`)
@@ -84,7 +85,7 @@ Target `v0.2.0` · **now** · 6 open · 0 shipped · `..........` 0%
 
 ### M5 — Delivery and depth
 
-Target `v0.3.0` · later · 5 open · 1 shipped · `##........` 17%
+Target `v0.3.0` · later · 5 open · 2 shipped · `###.......` 29%
 
 | Item | Priority | Size | Labels | Status |
 |---|---|---|---|---|
@@ -94,6 +95,7 @@ Target `v0.3.0` · later · 5 open · 1 shipped · `##........` 17%
 | **EM-25** — Apache and AWS ALB dialects | low | M | parser | open |
 | **EM-26** — Infer a visitor journey | low | L | integration,check | open |
 | **EM-23** — Documentation site | med | M | docs | done, unreleased |
+| **EM-35** — A logo, and one geometry behind it | med | S | docs,delivery | done, unreleased |
 
 ### M7 — Who was asking, and what it cost
 
@@ -111,10 +113,11 @@ Target `v0.4.0` · later · 7 open · 0 shipped · `..........` 0%
 
 ### M6 — Ongoing
 
-Target `ongoing` · ongoing · 1 open · 0 shipped · `..........` 0%
+Target `ongoing` · ongoing · 2 open · 0 shipped · `..........` 0%
 
 | Item | Priority | Size | Labels | Status |
 |---|---|---|---|---|
+| **EM-36** — Document everything, in the same commit | high | M | docs,project | open |
 | **EM-27** — Keep the finding catalogue and its thresholds documented | med | S | docs,check | open |
 
 ## By label
@@ -126,7 +129,8 @@ Target `ongoing` · ongoing · 1 open · 0 shipped · `..........` 0%
 | `integration` | 6 | 4 |
 | `output` | 5 | 4 |
 | `cli` | 5 | 3 |
-| `docs` | 3 | 2 |
-| `delivery` | 1 | 1 |
+| `docs` | 5 | 3 |
+| `delivery` | 2 | 1 |
+| `project` | 1 | 1 |
 | `release` | 1 | 1 |
 | `tests` | 1 | 1 |

@@ -51,6 +51,16 @@ disagree, this file wins and CLAUDE.md gets fixed.
 - **Align everything**: a new dialect, check or flag lands in the same commit as
   its README row, its `--help` text, its tests, the backlog tick and the
   CHANGELOG line.
+- **Document everything, in the same commit** (EM-36). A change is not done
+  when it works: it is done when a reader can find out what it does without
+  reading the code. Every dialect, check, flag, exit code and threshold lands
+  with its docs page or section, its README row, its `--help` line and its
+  CHANGELOG entry. Every number printed in the docs comes from running the tool
+  over `docs/example.log` — never from memory, because a plausible wrong number
+  in a document outlives the commit that invented it. Anything generated says
+  that it is generated and how to regenerate it, and where the check can be
+  mechanised it is: `scripts/site.sh check`, `scripts/backlog.sh check`,
+  `scripts/logo.sh check`.
 - **The docs are a site**: `docs/` is published to
   [allan-nava.github.io/edgemix](https://allan-nava.github.io/edgemix/) by
   `scripts/site.sh` — POSIX sh and awk, because tooling with a toolchain rots.
@@ -60,6 +70,11 @@ disagree, this file wins and CLAUDE.md gets fixed.
   `scripts/site.sh check` — a CI gate alongside `scripts/site_test.sh` — fails
   on a dead internal link or a dead anchor. Numbers on a docs page come from
   running the tool over `docs/example.log`, never from memory.
+- **The logo is generated too**: `scripts/logo.sh` writes the mark, the
+  favicon and both lockups from one geometry, and the dashed line in the mark is
+  the arithmetic mean of its bars, computed at generation time. Never hand-edit
+  an SVG in `docs/assets` — `scripts/logo.sh check` fails on it. The rationale,
+  the colours and the usage rules are in `docs/logo.md`.
 - **Releases**: every release is a tagged `vX.Y.Z` with a new `CHANGELOG.md`
   section (Keep a Changelog). `minor` for new dialects, checks or flags; `patch`
   for fixes. **Never `git push`** — that is the maintainer's call. No

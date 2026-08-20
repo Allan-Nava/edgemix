@@ -27,19 +27,52 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   none of the numbers, one request times out at 7301ms and one path is refused
   entry to a pool because the only time it was asked for as a document it
   answered `504`. An example whose input you cannot read is a screenshot.
-- `scripts/site_test.sh`: 31 checks over the renderer, because a renderer does
+- **A logo** (EM-35), and a generator behind it. The mark is the argument the
+  tool makes, drawn: seven bars are seven logged seconds, the green one is the
+  peak second at 42 req/s, and the dashed line is the mean at 21 — drawn behind
+  the bars because that is what a mean is, a gridline rather than something that
+  happened. `scripts/logo.sh` writes the mark, the favicon and both lockups
+  from one geometry, computes the dashed line from the bar values, and
+  `scripts/logo.sh check` fails on a hand-edited or stale SVG the way
+  `backlog.sh check` fails on a stale roadmap. The favicon is the mark
+  *restated* at 16px — four seconds and no dash — because at that size a 3px
+  dash is a smudge and seven bars are a grey block. The wordmark is set in the
+  system monospace with `textLength` pinning its advance width: the face the
+  report is read in, no font file to fetch, and no clipping on a machine whose
+  mono is wider. No raster is committed — an SVG is text and reviews in a diff;
+  `docs/logo.md` carries the command for a PNG if a platform insists.
+- `docs/logo.md`: what the mark means, the four files, the geometry, the
+  colours, the clear space and the minimum sizes, and why there is no dark
+  variant of the mark (its three colours read on white and on `#0d1117` alike).
+- `scripts/logo_test.sh`: 27 checks. A generated logo makes claims that can be
+  false — that the four files share one geometry, that the dashed line really
+  is the mean of the bars, that no SVG fetches or runs anything, and that the
+  numbers on `docs/logo.md` are the ones the generator prints.
+- Images in the docs renderer: `![alt](src)` was rendering as a link with a
+  stray exclamation mark in front of it, which the logo page found immediately.
+  `src` attributes are now link-checked alongside `href`, so a missing image
+  fails the build like a missing page, and `docs/assets/` is copied into the
+  built site.
+- `scripts/site_test.sh`: 39 checks over the renderer, because a renderer does
   not crash — it publishes a page with `**bold**` printed literally in it, a
   `.md` link that 404s, or a table row split in three by a `|` inside a cell.
   It found an infinite loop on a paragraph beginning with a pipe before any
-  page did.
+  page did, and a `{#custom-anchor}` on the logo page that neither this
+  renderer nor GitHub supports.
 
 ### Changed
 
+- The operating brief (`AGENTS.md`, `CLAUDE.md`) gains **document everything, in
+  the same commit** (EM-36): a change is done when a reader can find out what it
+  does without reading the code, every number in the docs comes from running the
+  tool over `docs/example.log`, and anything generated says that it is generated
+  and how to regenerate it.
 - `BACKLOG.md` gains **M7 — Who was asking, and what it cost** (EM-28 … EM-34),
   targeted at v0.4.0: bots separated from visitors, a per-host split, the
   aggregate wait attributed per class and per path, concurrency at the peak
   second, the write path in the mix, a single-file HTML report, and a versioned
-  JSON schema. `ROADMAP.md` regenerated.
+  JSON schema — plus EM-35 (the logo) and EM-36 (the documentation rule, as an
+  ongoing item). `ROADMAP.md` regenerated.
 
 ## [0.1.0] — 2026-08-20
 

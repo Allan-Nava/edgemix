@@ -130,6 +130,13 @@ prints what to pick up.
   and awk, so the site has no toolchain to rot, and a dead internal link or a
   dead anchor fails CI rather than waiting for a reader to click.
   <!-- em: prio=med size=M labels=docs ver=unreleased -->
+- [x] **EM-35 — A logo, and one geometry behind it**: the mark is the argument
+  the tool makes — bars are seconds, the green one is the peak, the dashed line
+  is the mean that sits far below it. `scripts/logo.sh` writes the mark, the
+  favicon and both lockups from one set of numbers, and computes the mean from
+  the bars, so a drawing cannot claim an average it does not have.
+  `scripts/logo.sh check` is a CI gate and `docs/logo.md` documents the lot.
+  <!-- em: prio=med size=S labels=docs,delivery ver=unreleased -->
 - [ ] **EM-24 — Fuzz the parsers**: a log is bytes from the outside — a line cut
   by a rotation, a captured header with a quote in it, a JSON object with a
   number where a string belongs. A panic there is a crash in someone else's CI.
@@ -187,3 +194,12 @@ prints what to pick up.
   every threshold in `internal/analyze/findings.go` is a claim about what a
   number means operationally, and each one belongs in the docs next to the
   measurement it judges. <!-- em: prio=med size=S labels=docs,check -->
+- [ ] **EM-36 — Document everything, in the same commit**: a change is not done
+  when it works. Every dialect, check, flag, exit code, threshold and generated
+  artefact lands with its docs page or section, its README row, its `--help`
+  line and its CHANGELOG entry — and every number printed in the docs comes
+  from running the tool over `docs/example.log`, never from memory. Anything
+  generated says so, and says how to regenerate it. The gates that can be
+  mechanised are: `scripts/site.sh check`, `scripts/backlog.sh check`,
+  `scripts/logo.sh check`. The rest is review.
+  <!-- em: prio=high size=M labels=docs,project -->

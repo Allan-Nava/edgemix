@@ -88,6 +88,13 @@ jobs:
         run: sh scripts/site_test.sh
       - name: The site builds and every internal link resolves
         run: ./scripts/site.sh check
+      # The logo is generated from one geometry in scripts/logo.sh. A hand-edited
+      # SVG, or a lockup that drifted from the mark, is a stale file rather than a
+      # broken one — so it is a gate, the same way ROADMAP.md is.
+      - name: The logo generator
+        run: sh scripts/logo_test.sh
+      - name: The committed SVGs match the geometry
+        run: ./scripts/logo.sh check
 
   govulncheck:
     runs-on: ubuntu-latest
