@@ -93,11 +93,15 @@ prints what to pick up.
 
 ## M4 — The layers this cannot see yet <!-- ms: target=v0.2.0 phase=now -->
 
-- [ ] **EM-15 — CDN log dialects**: CloudFront and Akamai delivery logs. Today
-  everything above the edge is invisible, which is exactly where the difference
-  between origin load and audience lives — and the reason a report has to keep
-  saying "origin-side load, not audience".
-  <!-- em: prio=high size=L labels=parser -->
+- [x] **EM-15 — CDN log dialects**: CloudFront (read by its own `#Fields:`
+  header, and refused without one) and Akamai DataStream 2 (JSON with every
+  value a string). Everything above the edge used to be invisible, which is
+  exactly where the difference between origin load and audience lives — so the
+  report now flips for these two: the `edge` finding gives the share that
+  reached the origin, the tier diagram draws the CDN on top, the wait hint says
+  the percentiles blend an edge answer with an origin one, and an emitted
+  profile carries an `edge_note` because `safe_peak_rps` is then a level the
+  *edge* survived. <!-- em: prio=high size=L labels=parser ver=unreleased -->
 - [ ] **EM-16 — `edgemix compare` for two windows**: before and after a
   deploy, a cache change or an incident, with the denominator stated on every
   delta. A share of a total that itself moved is the most reliable way to

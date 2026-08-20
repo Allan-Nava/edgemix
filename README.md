@@ -73,8 +73,10 @@ And one it refuses to answer: **how many people**. An access log counts requests
 
 ```
   /var/log/haproxy-edge.log ──┐
-  Traefik JSON access log ────┼──► edgemix analyze ──► report (text · markdown · JSON)
-  nginx combined + cache ─────┘         │                 findings, worst first
+  Traefik JSON access log ────┤
+  nginx combined + cache ─────┼──► edgemix analyze ──► report (text · markdown · JSON)
+  CloudFront standard log ────┤         │                 findings, worst first
+  Akamai DataStream 2 ────────┘         │
                                         │
                                         └──► edgemix profile ──► profile.json ──► crowdsim
                                                   measured weights, pools,        replays the
@@ -108,10 +110,14 @@ The emitted profile carries its own provenance, so nobody replays a mix measured
 | `haproxy` | the bracketed accept date, the five-timer field, the quoted request | `Tr` — the wait for the server's response | via a captured header (planned) |
 | `nginx` | `combined`, with or without extras | `$request_time` — the whole exchange, client read included | `$upstream_cache_status` |
 | `traefik` | the JSON access log | `OriginDuration` — the wait on the service | `Cache-Status` |
+| `cloudfront` | the `#Fields:` header, then tab-separated rows | `time-to-first-byte` — the wait measured at the edge | `x-edge-result-type` |
+| `akamai` | DataStream 2 JSON, every value a string | `turnAroundTimeMSec` — the origin wait | `cacheStatus` |
 
 Detection is a **vote**: every parser is run over a sample and the one that read the most lines wins. The dialects resemble each other closely enough that a signature match is not safe — an nginx line read as HAProxy does not fail, it parses into plausible nonsense — and a tie refuses rather than guessing. Pass `--dialect` to decide yourself.
 
-The parsers anchor on the *shape* of a line, never on column positions, which is what makes a syslog prefix, a captured header block or a renamed frontend harmless. Every `awk` one-liner this tool replaces was rewritten at least once because of exactly that.
+The parsers anchor on the *shape* of a line, never on column positions, which is what makes a syslog prefix, a captured header block or a renamed frontend harmless. Every `awk` one-liner this tool replaces was rewritten at least once because of exactly that. CloudFront is the exception that proves it: it names its own columns in a `#Fields:` line, so they are read by name — and a file whose header was stripped is refused rather than read through an assumed order.
+
+**A CDN log means the opposite of a proxy log**, and edgemix says which one it read. An HAProxy or nginx log never sees what the CDN answered, so its numbers are origin load and say nothing about the audience. A CloudFront or DataStream 2 log is the other way round: it records what the audience asked for, and the origin behind was asked only for the share that missed. The report gives that share, the tier diagram draws it, and an emitted profile carries the note — because a mix measured at the edge and replayed against an origin replays every request the CDN was absorbing, at a peak the origin never saw.
 
 ## What it will not do
 
@@ -161,7 +167,7 @@ Flags worth knowing:
 
 | Flag | What it changes |
 |---|---|
-| `--dialect` | skip detection: `haproxy`, `nginx`, `traefik` |
+| `--dialect` | skip detection: `haproxy`, `nginx`, `traefik`, `cloudfront`, `akamai` |
 | `--tz` | the zone of a log whose dates carry no offset (HAProxy writes local time with nothing to read it from — the report states which zone it assumed) |
 | `--read-timeout` | your reverse proxy's read timeout, the threshold the one BAD finding is made of (default 7s) |
 | `--tails` | extra wait thresholds to report, e.g. `500ms,1s,3s` |

@@ -224,3 +224,51 @@ func containsWord(warns []string, word string) bool {
 	}
 	return false
 }
+
+// A mix measured above a cache is the audience's mix, and pointing a run at the
+// origin with it replays every request the CDN was absorbing — at a peak the
+// origin never saw. The emitter cannot fix that (lowering the ceiling would be
+// inventing a number), so it has to say it, in the file and on stderr.
+func TestProfileFromACDNLogSaysItIsAudienceSide(t *testing.T) {
+	r := sample()
+	r.Dialect = "cloudfront"
+	r.LatencyField = "time-to-first-byte"
+	r.Cache = &analyze.CacheStat{Field: "x-edge-result-type", Measured: 1000, Hits: 700, HitRatio: 0.7}
+
+	p, warns, err := Build(r, Options{BaseURL: "https://www.example.test", Name: "cdn"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	if p.Measured.EdgeNote == "" {
+		t.Fatal("a profile measured on a CDN log must carry that in _measured: nobody re-reads the command they ran a week later")
+	}
+	for _, want := range []string{"above the cache", "30.0%", "safe_peak_rps"} {
+		if !strings.Contains(p.Measured.EdgeNote, want) {
+			t.Errorf("edge_note does not mention %q: %s", want, p.Measured.EdgeNote)
+		}
+	}
+	found := false
+	for _, w := range warns {
+		if strings.Contains(w, "CDN log") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the emitter must warn on stderr too, not only inside the file: %v", warns)
+	}
+	// The measured ceiling stays measured. Scaling it here would be an
+	// invented number wearing the word "safe".
+	if p.Safety.SafePeakRPS != r.Rate.Peak {
+		t.Errorf("safe_peak_rps = %d, want the measured peak %d", p.Safety.SafePeakRPS, r.Rate.Peak)
+	}
+}
+
+func TestProfileFromAnOriginLogMakesNoEdgeClaim(t *testing.T) {
+	p, _, err := Build(sample(), Options{BaseURL: "https://www.example.test", Name: "example"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	if p.Measured.EdgeNote != "" {
+		t.Errorf("edge_note = %q, want empty for an origin-side log", p.Measured.EdgeNote)
+	}
+}

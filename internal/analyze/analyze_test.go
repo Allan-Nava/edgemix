@@ -1,6 +1,7 @@
 package analyze
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -26,13 +27,36 @@ func ev(offset time.Duration, path string, status int, wait time.Duration) logfm
 	return e
 }
 
+// named stands in for a dialect other than the default stub, where what the
+// report says depends on which one it was.
+type named struct{ n string }
+
+func (p named) Name() string                     { return p.n }
+func (named) LatencyField() string               { return "time-to-first-byte" }
+func (named) Parse(string) (logfmt.Event, error) { return logfmt.Event{}, logfmt.ErrSkip }
+
 func report(t *testing.T, o Options, events ...logfmt.Event) Report {
+	t.Helper()
+	return reportAs(t, stub{}, o, events...)
+}
+
+func reportAs(t *testing.T, p logfmt.Parser, o Options, events ...logfmt.Event) Report {
 	t.Helper()
 	a := New(o)
 	for _, e := range events {
 		a.Add(e)
 	}
-	return a.Report("test.log", stub{}, logfmt.Counts{Lines: len(events), Parsed: len(events)})
+	return a.Report("test.log", p, logfmt.Counts{Lines: len(events), Parsed: len(events)})
+}
+
+// find returns the first finding of a check, and whether there was one.
+func find(r Report, check, target string) (finding.Finding, bool) {
+	for _, f := range r.Findings {
+		if f.Check == check && (target == "" || f.Target == target) {
+			return f, true
+		}
+	}
+	return finding.Finding{}, false
 }
 
 func TestRateIsMeasuredAtTheSecond(t *testing.T) {
@@ -352,4 +376,94 @@ func worstOf(fs []finding.Finding, check, target string) finding.Status {
 		}
 	}
 	return worst
+}
+
+// A CDN log is written above the cache, which reverses the meaning of every
+// number in the report: these are the requests the audience made, and the tier
+// behind was asked only for the ones that missed. A report that does not say so
+// gets read as origin load, and an origin sized on it is sized for traffic a
+// CDN was absorbing.
+func TestCDNLogSaysTheOriginSawOnlyTheMisses(t *testing.T) {
+	var evs []logfmt.Event
+	for i, v := range []string{"HIT", "REFRESHHIT", "MISS", "MISS"} {
+		e := ev(time.Duration(i)*time.Second, "/a.js", 200, time.Millisecond)
+		e.Cache = v
+		evs = append(evs, e)
+	}
+	r := reportAs(t, named{"cloudfront"}, Options{}, evs...)
+
+	if r.Cache == nil {
+		t.Fatal("Cache = nil")
+	}
+	if r.Cache.Field != "x-edge-result-type" {
+		t.Errorf("Cache.Field = %q, want the CloudFront field name: a report that does not name the field it read cannot be compared with anything", r.Cache.Field)
+	}
+	// REFRESHHIT revalidated with the origin but answered from the edge, so the
+	// application tier was not asked. For a capacity question that is a hit.
+	if r.Cache.HitRatio != 0.5 {
+		t.Errorf("HitRatio = %v, want 0.5 — REFRESHHIT never reached the application", r.Cache.HitRatio)
+	}
+
+	f, ok := find(r, "edge", "origin share")
+	if !ok {
+		t.Fatal("a CDN log must state what share of it reached the origin")
+	}
+	if f.Status != finding.OK {
+		t.Errorf("status = %v, want OK: it is a statement about what the log means, not a problem", f.Status)
+	}
+	if f.Value == nil || *f.Value != 50 {
+		t.Errorf("Value = %v, want 50 (the share that missed), so a machine consumer never parses the prose", f.Value)
+	}
+	if f.Unit != "%" {
+		t.Errorf("Unit = %q", f.Unit)
+	}
+}
+
+func TestOriginSideLogMakesNoEdgeClaim(t *testing.T) {
+	// The same events under an origin-side dialect: there is nothing to say
+	// about what the edge absorbed, because this log never saw it.
+	e := ev(0, "/a.js", 200, time.Millisecond)
+	e.Cache = "HIT"
+	r := report(t, Options{}, e)
+	if _, ok := find(r, "edge", ""); ok {
+		t.Error("an nginx or HAProxy log must not make a claim about the edge above it")
+	}
+}
+
+func TestCDNLogWithoutACacheFieldCannotSpeakForTheOrigin(t *testing.T) {
+	// A CloudFront distribution logging without x-edge-result-type, or a
+	// DataStream 2 field set without cacheStatus. The traffic is measurable and
+	// the origin's share of it is not — which is a warning, not a silence.
+	r := reportAs(t, named{"akamai"}, Options{}, ev(0, "/a.js", 200, time.Millisecond))
+	f, ok := find(r, "edge", "origin share")
+	if !ok {
+		t.Fatal("a CDN log with no cache verdict must say that the origin share is unknown")
+	}
+	if f.Status != finding.WARN {
+		t.Errorf("status = %v, want WARN: every capacity number in this report is audience-side only", f.Status)
+	}
+}
+
+// The wait percentiles of a CDN log are the visitor's experience, not the
+// origin's queue: a request the edge answered never waited on the origin at
+// all. The number is the same shape as an origin-side one, which is exactly why
+// the hint has to differ.
+func TestCDNWaitHintDoesNotClaimTheOrigin(t *testing.T) {
+	e := ev(0, "/a.js", 200, 40*time.Millisecond)
+	e.Cache = "HIT"
+
+	cdn, ok := find(reportAs(t, named{"cloudfront"}, Options{}, e), "wait", "all classes")
+	if !ok {
+		t.Fatal("no wait finding")
+	}
+	origin, ok := find(report(t, Options{}, e), "wait", "all classes")
+	if !ok {
+		t.Fatal("no wait finding")
+	}
+	if cdn.Hint == origin.Hint {
+		t.Error("a CDN log and a proxy log cannot carry the same explanation of what the wait measured")
+	}
+	if !strings.Contains(cdn.Hint, "edge") {
+		t.Errorf("the CDN hint must say where the wait was measured: %q", cdn.Hint)
+	}
 }

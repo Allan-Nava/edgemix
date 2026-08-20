@@ -330,3 +330,116 @@ func TestDoubleDashEndsFlagsAndDashIsStdin(t *testing.T) {
 		t.Errorf("output:\n%s", out.String())
 	}
 }
+
+// writeCDNLog builds a CloudFront file the way the console delivers one: two
+// header lines, then tab-separated rows, with the field list in an order that
+// is not the current default.
+func writeCDNLog(t *testing.T) string {
+	t.Helper()
+	var b strings.Builder
+	b.WriteString("#Version: 1.0\n")
+	b.WriteString("#Fields: date time cs-method cs-uri-stem cs-uri-query sc-status x-edge-result-type time-taken time-to-first-byte x-host-header c-ip sc-bytes\n")
+	row := func(sec int, path, query string, status int, verdict string, ttfb float64) {
+		b.WriteString(fmt.Sprintf("2026-08-19\t18:00:%02d\tGET\t%s\t%s\t%d\t%s\t%.3f\t%.3f\twww.example.test\t203.0.113.7\t1200\n",
+			sec, path, query, status, verdict, ttfb+0.005, ttfb))
+	}
+	for i := 0; i < 30; i++ {
+		row(0, "/_next/static/chunks/main.js", "-", 200, "Hit", 0.002)
+	}
+	for i := 0; i < 10; i++ {
+		row(5, fmt.Sprintf("/news/%d", i), "-", 200, "Miss", 1.400)
+	}
+	for i := 0; i < 5; i++ {
+		row(6, "/news", "_rsc=1dxlt", 200, "Miss", 0.040)
+	}
+	row(7, "/page/slow", "-", 504, "Error", 9.000)
+
+	path := filepath.Join(t.TempDir(), "cf.log")
+	if err := os.WriteFile(path, []byte(b.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// The whole path over a CDN log: detection, the header, the report, and the one
+// sentence that must come out the other way round than it does for a proxy log.
+func TestAnalyzeCloudFrontEndToEnd(t *testing.T) {
+	log := writeCDNLog(t)
+	var out, errs bytes.Buffer
+	if code := run([]string{"analyze", "--format", "md", log}, &out, &errs); code != exitOK {
+		t.Fatalf("exit %d, stderr:\n%s", code, errs.String())
+	}
+	if !strings.Contains(errs.String(), "cloudfront") {
+		t.Errorf("the vote must land on cloudfront: %s", errs.String())
+	}
+	s := out.String()
+	for _, want := range []string{
+		"CloudFront (CDN)",
+		"the origin behind",
+		"what the audience asked",
+		"x-edge-result-type",
+		"time-to-first-byte",
+		"peak 30 req/s",
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("the report does not mention %q:\n%s", want, s)
+		}
+	}
+	// The two header lines are skipped, not counted as unreadable: a coverage
+	// hole is a claim about the traffic and these are not traffic.
+	if !strings.Contains(s, "2 skipped") && !strings.Contains(s, "skipped 2") {
+		t.Errorf("the header lines must be reported as skipped:\n%s", s)
+	}
+}
+
+func TestAnalyzeAkamaiEndToEnd(t *testing.T) {
+	var b strings.Builder
+	for i := 0; i < 20; i++ {
+		b.WriteString(fmt.Sprintf(`{"cliIP":"203.0.113.7","reqTimeSec":"178716240%d","reqMethod":"GET","reqHost":"www.example.test","reqPath":"/a.js","statusCode":"200","cacheStatus":"1","turnAroundTimeMSec":"5","totalBytes":"1200"}`+"\n", i%10))
+	}
+	for i := 0; i < 5; i++ {
+		b.WriteString(fmt.Sprintf(`{"cliIP":"203.0.113.7","reqTimeSec":"17871624%02d","reqMethod":"GET","reqHost":"www.example.test","reqPath":"/news/%d","statusCode":"200","cacheStatus":"0","turnAroundTimeMSec":"1800","totalBytes":"14000"}`+"\n", 10+i, i))
+	}
+	path := filepath.Join(t.TempDir(), "ds2.log")
+	if err := os.WriteFile(path, []byte(b.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errs bytes.Buffer
+	if code := run([]string{"analyze", "--format", "json", path}, &out, &errs); code != exitOK {
+		t.Fatalf("exit %d, stderr:\n%s", code, errs.String())
+	}
+	var r struct {
+		Dialect      string `json:"dialect"`
+		LatencyField string `json:"latency_field"`
+		Cache        *struct {
+			Field    string  `json:"field"`
+			HitRatio float64 `json:"hit_ratio"`
+		} `json:"cache"`
+		Findings []struct {
+			Check  string `json:"check"`
+			Target string `json:"target"`
+		} `json:"findings"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &r); err != nil {
+		t.Fatalf("the JSON report must stay machine-readable: %v", err)
+	}
+	if r.Dialect != "akamai" {
+		t.Errorf("dialect = %q", r.Dialect)
+	}
+	if !strings.Contains(r.LatencyField, "turnAroundTimeMSec") {
+		t.Errorf("latency_field = %q — a consumer has to be able to tell what was measured", r.LatencyField)
+	}
+	if r.Cache == nil || r.Cache.Field != "cacheStatus" || r.Cache.HitRatio != 0.8 {
+		t.Errorf("cache = %+v, want cacheStatus at 0.8", r.Cache)
+	}
+	var edge bool
+	for _, f := range r.Findings {
+		if f.Check == "edge" {
+			edge = true
+		}
+	}
+	if !edge {
+		t.Error("a CDN report must carry the edge finding, so a machine consumer can tell audience-side numbers from origin-side ones")
+	}
+}

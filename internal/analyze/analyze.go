@@ -419,12 +419,26 @@ func cacheStat(c *acc, p logfmt.Parser) *CacheStat {
 		field = "$upstream_cache_status"
 	case "traefik":
 		field = "Cache-Status"
+	case "cloudfront":
+		field = "x-edge-result-type"
+	case "akamai":
+		field = "cacheStatus"
 	}
 	st := &CacheStat{Field: field, Measured: c.cacheN}
-	// HIT, STALE, UPDATING and REVALIDATED all served the client without going
-	// to the origin, which is what "hit" has to mean for a capacity question:
-	// the request that did not reach the app tier.
-	hitish := map[string]bool{"HIT": true, "STALE": true, "UPDATING": true, "REVALIDATED": true}
+	// Every verdict here means the request was answered without the origin
+	// being asked, which is what "hit" has to mean for a capacity question: the
+	// request that did not reach the app tier.
+	//
+	// The CDN vocabularies are folded in for that reason and not for
+	// convenience. CloudFront's REFRESHHIT revalidated with the origin but
+	// served from the edge; ORIGINSHIELDHIT was answered by the shield layer,
+	// so the origin never saw it either. LIMITEXCEEDED and CAPACITYEXCEEDED are
+	// the CDN refusing — the origin was spared, and counting them as hits would
+	// read a throttled visitor as a cached one, so they are not here.
+	hitish := map[string]bool{
+		"HIT": true, "STALE": true, "UPDATING": true, "REVALIDATED": true,
+		"REFRESHHIT": true, "ORIGINSHIELDHIT": true,
+	}
 	for v, n := range c.cache {
 		if hitish[v] {
 			st.Hits += n

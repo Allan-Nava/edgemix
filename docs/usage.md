@@ -14,8 +14,8 @@ successor are analysed together.
 
 | Flag | Default | What it changes |
 |---|---|---|
-| `--dialect` | `auto` | `haproxy`, `nginx`, `traefik`. `auto` runs every parser over a sample and keeps the one that read the most lines; a tie refuses rather than guessing. |
-| `--tz` | `UTC` | The zone of a log whose dates carry no offset. HAProxy writes local time with nothing to read the zone from, so this is an assumption — and the report prints which one it made. |
+| `--dialect` | `auto` | `haproxy`, `nginx`, `traefik`, `cloudfront`, `akamai`. `auto` runs every parser over a sample and keeps the one that read the most lines; a tie refuses rather than guessing. |
+| `--tz` | `UTC` | The zone of a log whose dates carry no offset. HAProxy writes local time with nothing to read the zone from, so this is an assumption — and the report prints which one it made. It does not apply to nginx (its `$time_local` carries an offset), Traefik (`StartUTC`), CloudFront (UTC by definition) or Akamai (an epoch). |
 | `--xff-capture` | `0` | The 1-based slot of `X-Forwarded-For` among HAProxy's captured request headers (`{a|b|c}`). Only its presence is recorded; the value is never kept. |
 | `--classes` | built-in | A JSON file replacing the class rules. See [the class set](#classes). |
 | `--since`, `--until` | — | Narrow the window. `2026-08-19 18:00:00` is read in `--tz`; an RFC3339 instant is also accepted. Excluded requests are counted and reported on stderr. |
@@ -34,6 +34,7 @@ successor are analysed together.
 
 ```bash
 edgemix analyze /var/log/haproxy-edge.log
+edgemix analyze E1ABCDEF.2026-08-19-18.*.gz        # a day of CloudFront, headers and all
 edgemix analyze --format md edge.log > docs/incidents/2026-08-19-peak.md
 edgemix analyze --format json edge.log | jq '.rate, .classes[].name'
 ssh lb1 'tail -n 200000 /var/log/haproxy.log' | edgemix analyze --dialect haproxy -

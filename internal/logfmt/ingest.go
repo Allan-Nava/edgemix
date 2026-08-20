@@ -29,12 +29,34 @@ func ByName(name string, o Options) (Parser, error) {
 		return Nginx{}, nil
 	case "traefik":
 		return Traefik{}, nil
+	case "cloudfront":
+		return &CloudFront{}, nil
+	case "akamai":
+		return Akamai{}, nil
 	}
-	return nil, fmt.Errorf("unknown dialect %q (known: haproxy, nginx, traefik)", name)
+	return nil, fmt.Errorf("unknown dialect %q (known: %s)", name, strings.Join(Dialects(), ", "))
 }
 
 // Dialects lists the known dialect ids, for --help and error messages.
-func Dialects() []string { return []string{"haproxy", "nginx", "traefik"} }
+func Dialects() []string {
+	return []string{"haproxy", "nginx", "traefik", "cloudfront", "akamai"}
+}
+
+// IsCDN reports whether a dialect reads a log written *above* the cache.
+//
+// It flips the sentence every report has to carry. For an origin-side log —
+// HAProxy, nginx, Traefik — a CDN hit never arrives, so the numbers are origin
+// load and say nothing about the audience. For a CDN log they are what the
+// audience asked for, and the tier behind saw only the misses. Getting this the
+// wrong way round is the single most expensive misreading of a traffic report,
+// which is why it is one function and not a sentence repeated in three places.
+func IsCDN(dialect string) bool {
+	switch strings.ToLower(dialect) {
+	case "cloudfront", "akamai":
+		return true
+	}
+	return false
+}
 
 // Detect picks the dialect by trying every parser over a sample of lines and
 // keeping the one that read the most.

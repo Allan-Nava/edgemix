@@ -67,6 +67,23 @@ Always OK: the largest class, its share, its count and its **own** peak second.
 Classes do not peak together, and the numerous class is usually the cheap one —
 which is why a load test firing a flat URL list reproduces none of this.
 
+## edge
+
+Only for a **CDN** dialect (`cloudfront`, `akamai`), because only there is the
+log written above the cache. See [the dialects](dialects.md#above-the-cache-or-below-it).
+
+| Target | Level | When | Why it matters |
+|---|---|---|---|
+| `origin share` | OK | the log carries a cache verdict | the share that missed is the only bridge between this report and the capacity of the tier behind: the mix and the peak are what the audience asked for, and the origin was asked for that share of them |
+| `origin share` | WARN | the log carries no cache verdict | the traffic is measurable and the origin's share of it is not, so every capacity number in the report is audience-side only |
+
+This is the finding that stops the most expensive misreading of a traffic
+report: an origin sized on audience-side numbers is sized for the traffic a CDN
+was absorbing. The same reversal runs through the report — the tier diagram
+draws the CDN on top, the `wait` hint says the percentiles blend an edge answer
+with an origin one, and an emitted profile carries an `edge_note` saying that
+`safe_peak_rps` is a level the *edge* survived.
+
 ## cache
 
 | Target | Level | When |
@@ -74,6 +91,18 @@ which is why a load test firing a flat URL list reproduces none of this.
 | the cache field | OK | the share of judged responses served without the origin |
 | *(class name)* | WARN | a class with ≥ 1000 judged responses hit under 10% of the time |
 | `log` | OK | the log carries no cache verdict — the ratio is **unknown**, which is not zero |
+
+The target of that first finding is the field that was actually read —
+`$upstream_cache_status`, `Cache-Status`, `x-edge-result-type` or `cacheStatus` —
+because a hit ratio without the name of the layer that judged it is not
+comparable with anything.
+
+A hit is any verdict that answered without asking the origin, which is what the
+capacity question is: `HIT`, `STALE`, `UPDATING` and `REVALIDATED`, plus
+CloudFront's `RefreshHit` (revalidated, but served from the edge) and
+`OriginShieldHit` (answered by the shield, so the origin never saw it).
+`LimitExceeded` and `CapacityExceeded` are **not** hits: the CDN refused, and
+counting a throttled visitor as a cached one would flatter both numbers.
 
 A class that cold is usually a cache that is never asked rather than one that
 keeps missing: a `no-store` from the application, a `Vary` the origin does not

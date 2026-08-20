@@ -16,6 +16,7 @@ import (
 
 	"github.com/Allan-Nava/edgemix/internal/analyze"
 	"github.com/Allan-Nava/edgemix/internal/finding"
+	"github.com/Allan-Nava/edgemix/internal/logfmt"
 )
 
 // Format is a rendering.
@@ -274,18 +275,38 @@ func schema(r analyze.Report) string {
 		b.WriteString("  [ CDN ] · [ edge LB ]  ─── not in this log ───\n     │\n  ┌──▼──────────────────┐\n  │  nginx (proxy)      │  ◄── the log read here\n  └──┬──────────────────┘\n")
 	case "traefik":
 		b.WriteString("  [ CDN ] · [ edge LB ]  ─── not in this log ───\n     │\n  ┌──▼──────────────────┐\n  │  Traefik (ingress)  │  ◄── the log read here\n  └──┬──────────────────┘\n")
+	case "cloudfront":
+		b.WriteString("  ┌──▼──────────────────┐\n  │  CloudFront (CDN)   │  ◄── the log read here\n  └──┬──────────────────┘\n")
+	case "akamai":
+		b.WriteString("  ┌──▼──────────────────┐\n  │  Akamai (CDN)       │  ◄── the log read here\n  └──┬──────────────────┘\n")
 	default:
 		b.WriteString("  ┌─────────────────────┐\n  │  the logging tier   │  ◄── the log read here\n  └──┬──────────────────┘\n")
 	}
-	b.WriteString("     │\n  ┌──▼──────────────────┐\n")
-	if r.Latency != nil {
-		b.WriteString(fmt.Sprintf("  │  the tier behind    │  waited p95 %.0fms, p99 %.0fms\n", r.Latency.P95, r.Latency.P99))
+	cdn := logfmt.IsCDN(r.Dialect)
+	if cdn && r.Cache != nil {
+		b.WriteString(fmt.Sprintf("     │  only the %.0f%% that missed continued\n  ┌──▼──────────────────┐\n", (1-r.Cache.HitRatio)*100))
 	} else {
-		b.WriteString("  │  the tier behind    │  wait not recorded\n")
+		b.WriteString("     │\n  ┌──▼──────────────────┐\n")
+	}
+	behind := "the tier behind    "
+	if cdn {
+		behind = "the origin behind  "
+	}
+	if r.Latency != nil {
+		b.WriteString(fmt.Sprintf("  │  %s│  waited p95 %.0fms, p99 %.0fms\n", behind, r.Latency.P95, r.Latency.P99))
+	} else {
+		b.WriteString(fmt.Sprintf("  │  %s│  wait not recorded\n", behind))
 	}
 	b.WriteString("  └─────────────────────┘\n\n")
 	b.WriteString(fmt.Sprintf("  arrivals: peak %d req/s · mean %.1f req/s over %ds\n", r.Rate.Peak, r.Rate.Mean, r.WindowSeconds))
-	b.WriteString("  everything above the marked tier is invisible here: a CDN hit never\n  reaches this log, so these numbers are origin-side load, not audience.")
+	// The one sentence a reader must not get the wrong way round. An
+	// origin-side log cannot see what the CDN absorbed; a CDN log sees all of
+	// it and the origin behind saw only the misses.
+	if cdn {
+		b.WriteString("  this log is above the cache: these numbers are what the audience asked\n  for, the origin behind was asked only for the share that missed, and the\n  wait percentiles cover both.")
+	} else {
+		b.WriteString("  everything above the marked tier is invisible here: a CDN hit never\n  reaches this log, so these numbers are origin-side load, not audience.")
+	}
 	return b.String()
 }
 

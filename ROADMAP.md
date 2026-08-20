@@ -6,7 +6,7 @@
 > of truth for planned work. Regenerate it with `scripts/backlog.sh roadmap`
 > after editing the backlog — CI fails when the two disagree.
 
-**36 items · 16 shipped · 20 open · 7 milestones.**
+**36 items · 17 shipped · 19 open · 7 milestones.**
 
 ## At a glance
 
@@ -15,7 +15,7 @@
 | **M1** — Read the log | `v0.1.0` | shipped | `##########` 100% | 0 | 5 |
 | **M2** — Measure what the log can answer | `v0.1.0` | shipped | `##########` 100% | 0 | 7 |
 | **M3** — Feed the load test | `v0.1.0` | shipped | `##########` 100% | 0 | 2 |
-| **M4** — The layers this cannot see yet | `v0.2.0` | **now** | `..........` 0% | 6 | 0 |
+| **M4** — The layers this cannot see yet | `v0.2.0` | **now** | `##........` 17% | 5 | 1 |
 | **M5** — Delivery and depth | `v0.3.0` | later | `###.......` 29% | 5 | 2 |
 | **M7** — Who was asking, and what it cost | `v0.4.0` | later | `..........` 0% | 7 | 0 |
 | **M6** — Ongoing | `ongoing` | ongoing | `..........` 0% | 2 | 0 |
@@ -24,7 +24,6 @@
 
 The open items with the highest priority in the milestones that are in flight.
 
-- **EM-15** — CDN log dialects · `high` · size `L` · parser (M4, target `v0.2.0`)
 - **EM-16** — `edgemix compare` for two windows · `high` · size `M` · check,cli (M4, target `v0.2.0`)
 - **EM-36** — Document everything, in the same commit · `high` · size `M` · docs,project (M6, target `ongoing`)
 - **EM-17** — Per-second series export · `med` · size `S` · output (M4, target `v0.2.0`)
@@ -72,16 +71,16 @@ Target `v0.1.0` · shipped · 0 open · 2 shipped · `##########` 100%
 
 ### M4 — The layers this cannot see yet
 
-Target `v0.2.0` · **now** · 6 open · 0 shipped · `..........` 0%
+Target `v0.2.0` · **now** · 5 open · 1 shipped · `##........` 17%
 
 | Item | Priority | Size | Labels | Status |
 |---|---|---|---|---|
-| **EM-15** — CDN log dialects | high | L | parser | open |
 | **EM-16** — `edgemix compare` for two windows | high | M | check,cli | open |
 | **EM-17** — Per-second series export | med | S | output | open |
 | **EM-18** — Cache-Status (RFC 9211) and captured cache headers | med | M | parser,check | open |
 | **EM-19** — Declared sampling | med | M | check | open |
 | **EM-20** — Profile linter | med | S | integration,cli | open |
+| **EM-15** — CDN log dialects | high | L | parser | done, unreleased |
 
 ### M5 — Delivery and depth
 
@@ -125,9 +124,9 @@ Target `ongoing` · ongoing · 2 open · 0 shipped · `..........` 0%
 | Label | Items | Open |
 |---|---|---|
 | `check` | 16 | 10 |
-| `parser` | 9 | 5 |
 | `integration` | 6 | 4 |
 | `output` | 5 | 4 |
+| `parser` | 9 | 4 |
 | `cli` | 5 | 3 |
 | `docs` | 5 | 3 |
 | `delivery` | 2 | 1 |

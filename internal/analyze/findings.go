@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Allan-Nava/edgemix/internal/finding"
+	"github.com/Allan-Nava/edgemix/internal/logfmt"
 )
 
 // Thresholds. They are constants rather than flags because each one is a claim
@@ -125,12 +126,22 @@ func (a *Analyzer) findings(r *Report) []finding.Finding {
 
 	// ── waiting ──────────────────────────────────────────────────────────────
 	if r.Latency != nil {
+		// On an origin-side log every measured wait is a wait on the tier
+		// behind. On a CDN log it is not: a request the edge answered waited on
+		// the cache, and a percentile over the whole mix therefore blends two
+		// different systems. The number is still the right one to report — it
+		// is what the visitor experienced — but the hint has to stop a reader
+		// from taking it to the origin's capacity meeting.
+		waitHint := "this is time spent waiting for the tier behind, not time spent computing: it grows with queueing, so it is the earliest sign of a saturated tier"
+		if logfmt.IsCDN(r.Dialect) {
+			waitHint = "this is what the visitor waited, measured at the edge: a request the edge answered never waited on the origin at all, so this distribution blends the two — read it as the audience's experience, and read the miss share for the origin's load"
+		}
 		add(finding.Finding{
 			Check: "wait", Target: "all classes", Status: finding.OK,
 			Message: fmt.Sprintf("%s: p50 %.0fms, p95 %.0fms, p99 %.0fms, max %.0fms",
 				r.LatencyField, r.Latency.P50, r.Latency.P95, r.Latency.P99, r.Latency.Max),
 			Value: finding.Num(r.Latency.P95), Unit: "ms",
-			Hint: "this is time spent waiting for the tier behind, not time spent computing: it grows with queueing, so it is the earliest sign of a saturated tier",
+			Hint: waitHint,
 		})
 
 		timeout := a.o.ReadTimeout
@@ -278,6 +289,33 @@ func (a *Analyzer) findings(r *Report) []finding.Finding {
 			Message: "this log carries no cache verdict, so the hit ratio is unknown",
 			Hint:    "unknown is not zero: add $upstream_cache_status to nginx's log-format, or capture the layer's cache header in HAProxy, before concluding anything about caching",
 		})
+	}
+
+	// ── the edge ─────────────────────────────────────────────────────────────
+	// A CDN log is written above the cache, which reverses the sentence every
+	// other dialect's report carries. There, a CDN hit never arrives and the
+	// numbers are origin load. Here, the numbers are what the audience asked
+	// for and the origin was asked only for the misses — so the share that
+	// missed is the only bridge between this report and the capacity of the
+	// tier behind. Stating it is the difference between sizing an origin for
+	// the traffic it will get and sizing it for the traffic a CDN absorbed.
+	if logfmt.IsCDN(r.Dialect) {
+		if r.Cache != nil {
+			missed := r.Cache.Measured - r.Cache.Hits
+			add(finding.Finding{
+				Check: "edge", Target: "origin share", Status: finding.OK,
+				Message: fmt.Sprintf("this is a CDN log: %s of judged requests were answered at the edge, so the origin was asked for the other %s (%d requests)",
+					pct(r.Cache.HitRatio), pct(1-r.Cache.HitRatio), missed),
+				Value: finding.Num((1 - r.Cache.HitRatio) * 100), Unit: "%",
+				Hint: "the mix and the peak above are audience-side: the tier behind saw only this share of them, and the wait percentiles blend an edge answer with an origin one — size the origin on the misses, and use this log for what the audience did",
+			})
+		} else {
+			add(finding.Finding{
+				Check: "edge", Target: "origin share", Status: finding.WARN,
+				Message: "this is a CDN log with no cache verdict in it, so how much of this traffic reached the origin cannot be told",
+				Hint:    "add `x-edge-result-type` to the CloudFront log configuration, or `cacheStatus` to the DataStream 2 field set: without it a CDN log measures the audience and says nothing at all about the origin behind it",
+			})
+		}
 	}
 
 	// ── audience ─────────────────────────────────────────────────────────────

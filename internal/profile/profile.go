@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/Allan-Nava/edgemix/internal/analyze"
+	"github.com/Allan-Nava/edgemix/internal/logfmt"
 )
 
 // Options are the parts a log cannot supply.
@@ -87,7 +88,14 @@ type Measured struct {
 	LatencyP95Ms float64 `json:"latency_p95_ms,omitempty"`
 	AudienceNote string  `json:"audience_note"`
 	CoverageNote string  `json:"coverage_note,omitempty"`
-	DroppedPaths int     `json:"dropped_paths,omitempty"`
+	// EdgeNote is set when the mix was measured above a cache. A CDN log
+	// records what the audience asked for, so replaying it against an origin
+	// replays the requests the CDN was absorbing — at the measured peak, which
+	// the origin never saw. The number stays as measured and the file says what
+	// it is: a profile that silently meant something else is worse than one
+	// that has to be read.
+	EdgeNote     string `json:"edge_note,omitempty"`
+	DroppedPaths int    `json:"dropped_paths,omitempty"`
 }
 
 // Targets, Class, CacheHeader, SLO and Safety mirror the crowdsim profile
@@ -300,6 +308,15 @@ func Build(r analyze.Report, o Options) (Profile, []string, error) {
 	}
 	if r.Counts.MalformedShare() > 0.002 {
 		warn("%s of request lines could not be read: the weights are computed over the rest", pctString(r.Counts.MalformedShare()))
+	}
+	if logfmt.IsCDN(r.Dialect) {
+		origin := "an unknown share of it"
+		if r.Cache != nil {
+			origin = pctString(1-r.Cache.HitRatio) + " of it"
+		}
+		p.Measured.EdgeNote = fmt.Sprintf("this mix was measured on a %s log, above the cache: it is what the audience asked for, and the origin behind was asked for %s. Pointed at an origin, a run replays requests the CDN was absorbing, and safe_peak_rps is the peak the *edge* survived — aim the run at the CDN, or scale it to the miss share.",
+			r.Dialect, origin)
+		warn("the mix comes from a CDN log, so it is audience-side: the origin behind saw %s, and safe_peak_rps is a level the edge survived rather than the origin", origin)
 	}
 
 	sort.Strings(p.Safety.AllowHosts)

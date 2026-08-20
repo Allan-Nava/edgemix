@@ -19,11 +19,26 @@ const nginxSample = `10.0.0.9 - - [19/Aug/2026:18:06:38 +0000] "GET / HTTP/1.1" 
 const traefikSample = `{"RequestMethod":"GET","RequestPath":"/","DownstreamStatus":200,"Duration":10000000,"StartUTC":"2026-08-19T18:06:38Z"}
 {"RequestMethod":"GET","RequestPath":"/a.js","DownstreamStatus":200,"Duration":11000000,"StartUTC":"2026-08-19T18:06:39Z"}`
 
+// A CloudFront file always opens with its two header lines, which is also
+// what makes it recognisable: nothing else in the vote reads a #Fields line.
+const cloudfrontSample = `#Version: 1.0
+#Fields: date time cs-method cs-uri-stem sc-status x-edge-result-type time-taken
+2026-08-19	18:06:38	GET	/	200	Hit	0.010
+2026-08-19	18:06:39	GET	/a.js	200	Miss	0.200`
+
+// Akamai DataStream 2 is JSON, like Traefik. The two must not tie: a tie
+// refuses, and a refusal on a log that only one parser can actually read would
+// be a worse answer than either.
+const akamaiSample = `{"reqTimeSec":"1787162798","reqMethod":"GET","reqPath":"/","statusCode":"200","cacheStatus":"1","turnAroundTimeMSec":"10"}
+{"reqTimeSec":"1787162799","reqMethod":"GET","reqPath":"/a.js","statusCode":"200","cacheStatus":"0","turnAroundTimeMSec":"200"}`
+
 func TestDetect(t *testing.T) {
 	for _, tc := range []struct{ name, sample, want string }{
 		{"haproxy", haproxySample, "haproxy"},
 		{"nginx", nginxSample, "nginx"},
 		{"traefik", traefikSample, "traefik"},
+		{"cloudfront", cloudfrontSample, "cloudfront"},
+		{"akamai", akamaiSample, "akamai"},
 	} {
 		p, err := Detect(strings.Split(tc.sample, "\n"), Options{})
 		if err != nil {
@@ -104,5 +119,62 @@ func TestOpen_GzipByMagicNotByName(t *testing.T) {
 func TestByNameUnknown(t *testing.T) {
 	if _, err := ByName("apache", Options{}); err == nil {
 		t.Error("ByName accepted a dialect that does not exist")
+	}
+}
+
+// Two JSON dialects in the same vote is the case where a resemblance could win.
+// Each parser has to refuse the other's lines outright — as a skip, not as a
+// malformed line, since neither log is unreadable, it is simply not theirs.
+func TestDetect_TwoJSONDialectsDoNotTie(t *testing.T) {
+	for _, tc := range []struct{ name, sample, want string }{
+		{"traefik is not akamai", traefikSample, "traefik"},
+		{"akamai is not traefik", akamaiSample, "akamai"},
+	} {
+		p, err := Detect(strings.Split(tc.sample, "\n"), Options{})
+		if err != nil {
+			t.Errorf("%s: %v", tc.name, err)
+			continue
+		}
+		if p.Name() != tc.want {
+			t.Errorf("%s: detected %s", tc.name, p.Name())
+		}
+	}
+}
+
+// Detection votes over a sample and the winner then reads the file from the
+// start. A CloudFront parser that kept the mapping it built during the vote
+// would be indistinguishable from one that rebuilt it — until the day the vote
+// sample stops at the header. Reading twice has to be safe.
+func TestDetect_CloudFrontParserIsReusable(t *testing.T) {
+	lines := strings.Split(cloudfrontSample, "\n")
+	p, err := Detect(lines, Options{})
+	if err != nil {
+		t.Fatalf("Detect: %v", err)
+	}
+	var parsed int
+	for _, l := range lines {
+		if _, err := p.Parse(l); err == nil {
+			parsed++
+		}
+	}
+	if parsed != 2 {
+		t.Errorf("the detected parser read %d of 2 request lines on a second pass", parsed)
+	}
+}
+
+func TestDialects_AreAllReachableByName(t *testing.T) {
+	// --dialect takes this list verbatim, and every id in it has to resolve.
+	for _, name := range Dialects() {
+		p, err := ByName(name, Options{})
+		if err != nil {
+			t.Errorf("ByName(%q): %v", name, err)
+			continue
+		}
+		if p.Name() != name {
+			t.Errorf("ByName(%q).Name() = %q", name, p.Name())
+		}
+		if p.LatencyField() == "" {
+			t.Errorf("%s: LatencyField is empty — every number needs the name of what it measured", name)
+		}
 	}
 }

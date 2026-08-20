@@ -141,3 +141,50 @@ func TestEmptyReportRendersWithoutInventingNumbers(t *testing.T) {
 		}
 	}
 }
+
+// The schema is the one part of the report a reader takes in before the
+// numbers, and for a CDN log it has to say the opposite of what it says for an
+// origin-side one. Reversed, it is the most expensive sentence in the document:
+// an origin sized on audience-side numbers is sized for traffic the CDN was
+// absorbing.
+func TestMarkdownFlipsTheTierStoryForACDNLog(t *testing.T) {
+	r := sample()
+	r.Dialect = "cloudfront"
+	r.LatencyField = "time-to-first-byte (the wait measured at the edge)"
+	r.Cache = &analyze.CacheStat{Field: "x-edge-result-type", Measured: 100, Hits: 80, HitRatio: 0.8}
+
+	var buf bytes.Buffer
+	if err := Render(&buf, r, Markdown, false); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{
+		"CloudFront (CDN)",         // the tier the log came from
+		"the origin behind",        // and the one below it, which is not "the tier behind"
+		"only the 20% that missed", // the bridge between the two
+		"these numbers are what the audience asked",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the CDN schema does not contain %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "origin-side load, not audience") {
+		t.Error("a CDN log is not origin-side load: that sentence belongs to the origin-side dialects and reversing it is the whole trap")
+	}
+}
+
+func TestMarkdownKeepsTheOriginSideStoryForAProxyLog(t *testing.T) {
+	// The guard in the other direction: the sentence above must not leak into
+	// an nginx or HAProxy report, where the CDN really is invisible.
+	var buf bytes.Buffer
+	if err := Render(&buf, sample(), Markdown, false); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "origin-side load, not audience") {
+		t.Error("an origin-side log must keep saying so")
+	}
+	if strings.Contains(out, "what the audience asked") {
+		t.Error("an origin-side log cannot speak for the audience")
+	}
+}

@@ -9,6 +9,54 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Two CDN dialects: CloudFront and Akamai DataStream 2** (EM-15). Everything
+  above the edge used to be invisible, which is exactly where the difference
+  between origin load and audience lives.
+
+  CloudFront is the one log that names its own columns, so they are read by
+  name: the field list has grown over the years, a distribution can be
+  configured with fewer fields, and two files written years apart and
+  concatenated into one window carry two different headers — each of which is
+  re-read, so the second file is never read through the first one's mapping. A
+  file whose `#Fields:` line was stripped is **refused**, because the columns
+  are named nowhere else and assuming the current default order would produce a
+  plausible wrong report. `x-host-header` is preferred over `cs(Host)`: the
+  first is the host the viewer asked for, the second is the distribution
+  domain, and reading the wrong one lands `d111111abcdef8.cloudfront.net` in an
+  emitted profile's `allow_hosts` and aims a load test at the CDN. A `-` is an
+  absent value, `sc-status 000` is a viewer who disconnected and is counted as
+  traffic, and the dates are UTC by definition so `--tz` does not apply.
+
+  DataStream 2 writes every value as a string, timestamp included. Both a
+  string and a number are accepted, because a pipeline on the way to S3
+  re-types them; a value that is present but not a number makes the line
+  unreadable rather than zero. `reqTimeSec` is parsed as text rather than
+  through a `float64`, which does not survive an epoch with milliseconds in it.
+  `turnAroundTimeMSec` is the origin wait and `transferTimeMSec` is the viewer
+  reading the body; there is no field for the whole exchange, and adding the two
+  would produce a number that looks like `$request_time` without being one, so
+  this dialect reports no total at all. Both this and Traefik are JSON, and each
+  parser refuses the other's lines outright — a detection tie would ask for
+  `--dialect` on a log only one of them can read.
+
+- **A CDN log now means the opposite of a proxy log, and the report says so**
+  (EM-15). An origin-side log never sees what the CDN answered, so its numbers
+  are origin load; a CDN log records what the audience asked for, and the origin
+  behind was asked only for the share that missed. That reversal is the most
+  expensive misreading of a traffic report — an origin sized on audience-side
+  numbers is sized for the traffic a CDN was absorbing — so it runs through the
+  whole output: a new `edge` finding gives the share that reached the origin
+  (WARN when the log carries no cache verdict at all, because then it cannot be
+  told), the markdown tier diagram draws the CDN on top with the miss share on
+  the arrow beneath it, the `wait` hint says the percentiles blend an edge
+  answer with an origin one, `x-edge-result-type` and `cacheStatus` join the
+  cache field names, CloudFront's `RefreshHit` and `OriginShieldHit` count as
+  hits (the origin was not asked) while `LimitExceeded` does not (the CDN
+  refused), and an emitted profile carries an `edge_note` stating that
+  `safe_peak_rps` is a level the *edge* survived. The measured ceiling is not
+  scaled down to compensate: that would be an invented number wearing the word
+  "safe".
+
 - **A documentation site, published from `docs/`** (EM-23). The dialect table,
   the finding catalogue with the threshold behind each one, the usage reference
   and a worked example, rendered by `scripts/site.sh` — POSIX sh and awk, like
